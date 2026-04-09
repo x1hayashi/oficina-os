@@ -173,10 +173,152 @@
   .toast.show { transform: translateX(-50%) translateY(0); }
   .toast.error { background: var(--red); }
 
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  /* FAB - BOTÃO NOVA SOLICITAÇÃO */
+  .fab {
+    position: fixed; bottom: 24px; right: 20px; z-index: 150;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 50px;
+    padding: 14px 20px; font-family: var(--sans);
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(26,86,219,0.4);
+    display: flex; align-items: center; gap: 8px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .fab:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(26,86,219,0.3); }
 
-  /* FILIAL SELECTOR */
+  /* SOLICITATION MODAL */
+  .solic-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 400;
+    backdrop-filter: blur(3px);
+    align-items: flex-end;
+  }
+  .solic-overlay.open { display: flex; }
+  .solic-modal {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    border-top: 1.5px solid var(--border);
+    width: 100%; max-height: 92vh; overflow-y: auto;
+    padding: 20px 20px 36px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.34,1.4,0.64,1);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+  }
+  .solic-overlay.open .solic-modal { transform: translateY(0); }
+  .solic-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .solic-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .solic-subtitle { font-size: 13px; color: var(--text3); margin-bottom: 24px; line-height: 1.4; }
+
+  .solic-field { margin-bottom: 18px; }
+  .solic-label {
+    font-size: 12px; font-weight: 600; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .solic-label .req { color: var(--red); }
+  .solic-input, .solic-textarea, .solic-select {
+    width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+    color: var(--text); padding: 12px 14px; border-radius: 10px;
+    font-family: var(--sans); font-size: 15px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .solic-input:focus, .solic-textarea:focus, .solic-select:focus { border-color: var(--accent); }
+  .solic-textarea { resize: none; height: 90px; line-height: 1.5; }
+  .solic-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+  .solic-send-btn {
+    width: 100%; padding: 16px; border-radius: 12px; border: none;
+    background: #25D366; color: #fff;
+    font-family: var(--sans); font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: opacity 0.2s;
+  }
+  .solic-send-btn:hover { opacity: 0.9; }
+  .solic-cancel-btn {
+    width: 100%; padding: 13px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: transparent;
+    font-family: var(--sans); font-size: 15px; font-weight: 500;
+    color: var(--text2); cursor: pointer; margin-top: 10px;
+  }
+
+  /* EQUIP SEARCH */
+  .equip-result {
+    margin-top: 6px; padding: 10px 14px; background: var(--accent-light);
+    border: 1.5px solid var(--accent); border-radius: 10px;
+    font-size: 14px; color: var(--accent); font-weight: 500; display: none;
+  }
+  .equip-result.show { display: block; }
+  .equip-not-found {
+    margin-top: 6px; padding: 10px 14px; background: var(--red-light);
+    border: 1.5px solid var(--red); border-radius: 10px;
+    font-size: 14px; color: var(--red); display: none;
+  }
+  .equip-not-found.show { display: block; }
+
+  /* SOLICITANTES DROPDOWN */
+  .solic-dropdown {
+    position: relative;
+  }
+  .solic-dropdown-list {
+    display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+    background: var(--surface); border: 1.5px solid var(--accent);
+    border-radius: 10px; margin-top: 4px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto;
+  }
+  .solic-dropdown-list.open { display: block; }
+  .solic-dropdown-item {
+    padding: 12px 14px; font-size: 15px; cursor: pointer;
+    border-bottom: 1px solid var(--border); display: flex;
+    align-items: center; justify-content: space-between;
+  }
+  .solic-dropdown-item:last-child { border-bottom: none; }
+  .solic-dropdown-item:hover { background: var(--accent-light); }
+  .solic-dropdown-item .del-btn {
+    color: var(--text3); font-size: 16px; padding: 2px 6px;
+    border-radius: 4px; cursor: pointer;
+  }
+  .solic-dropdown-item .del-btn:hover { color: var(--red); }
+  .solic-add-new {
+    padding: 11px 14px; font-size: 14px; color: var(--accent);
+    font-weight: 600; cursor: pointer; text-align: center;
+    border-top: 1px solid var(--border);
+  }
+  .solic-add-new:hover { background: var(--accent-light); }
+
+  /* SETTINGS MODAL */
+  .settings-btn {
+    background: none; border: 1.5px solid var(--border); color: var(--text2);
+    padding: 7px 12px; border-radius: 8px; font-size: 18px;
+    cursor: pointer; line-height: 1;
+  }
+  .settings-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 400;
+    backdrop-filter: blur(3px); align-items: flex-end;
+  }
+  .settings-overlay.open { display: flex; }
+  .settings-modal {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    border-top: 1.5px solid var(--border); width: 100%;
+    max-height: 80vh; overflow-y: auto; padding: 20px 20px 36px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.34,1.4,0.64,1);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+  }
+  .settings-overlay.open .settings-modal { transform: translateY(0); }
+  .settings-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 20px; }
+  .settings-section { margin-bottom: 24px; }
+  .settings-section-title {
+    font-size: 12px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1.5px solid var(--border);
+  }
+  .settings-save-btn {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: var(--accent); color: #fff; font-family: var(--sans);
+    font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 4px;
+  }
+
   .filial-screen {
     position: fixed; inset: 0; background: var(--bg);
     z-index: 500; display: flex; align-items: center; justify-content: center;
@@ -242,9 +384,12 @@
 
 <div class="header">
   <div class="logo">Oficina <span id="filialLabel">/ OS</span></div>
-  <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">
-    <span id="refreshIcon">↻</span> Atualizar
-  </button>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="settings-btn" onclick="openSettings()" title="Configurações">⚙️</button>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">
+      <span id="refreshIcon">↻</span> Atualizar
+    </button>
+  </div>
 </div>
 
 <div class="date-row">
@@ -283,6 +428,80 @@
   </div>
 </div>
 
+<!-- FAB -->
+<button class="fab" onclick="openSolic()">✚ Nova Solicitação</button>
+
+<!-- SETTINGS MODAL -->
+<div class="settings-overlay" id="settingsOverlay" onclick="closeSettingsOutside(event)">
+  <div class="settings-modal">
+    <div class="solic-handle"></div>
+    <div class="settings-title">⚙️ Configurações</div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">WhatsApp dos Responsáveis</div>
+      <div class="solic-field">
+        <div class="solic-label">Filial HGO — Goiás</div>
+        <input class="solic-input" id="cfgWhatsHGO" placeholder="5562999990000" type="tel">
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;">55 + DDD + número, sem espaços</div>
+      </div>
+      <div class="solic-field">
+        <div class="solic-label">Filial HBA — Bahia</div>
+        <input class="solic-input" id="cfgWhatsHBA" placeholder="5571999990000" type="tel">
+      </div>
+    </div>
+
+    <button class="settings-save-btn" onclick="saveSettings()">Salvar Configurações</button>
+    <button class="solic-cancel-btn" onclick="closeSettings()">Fechar</button>
+  </div>
+</div>
+
+<!-- SOLICITATION MODAL -->
+<div class="solic-overlay" id="solicOverlay" onclick="closeSolicOutside(event)">
+  <div class="solic-modal">
+    <div class="solic-handle"></div>
+    <div class="solic-title">📋 Nova Solicitação de OS</div>
+    <div class="solic-subtitle">Preencha os dados. A solicitação será enviada via WhatsApp para lançamento no GSB.</div>
+
+    <!-- SOLICITANTE -->
+    <div class="solic-field">
+      <div class="solic-label">Solicitante <span class="req">*</span></div>
+      <div class="solic-dropdown">
+        <input class="solic-input" id="sNome" placeholder="Selecione ou digite seu nome"
+          type="text" autocomplete="off"
+          oninput="filterSolicitantes()" onfocus="showSolicitantes()" onblur="hideSolicitantesDelay()">
+        <div class="solic-dropdown-list" id="solicitantesList"></div>
+      </div>
+    </div>
+
+    <!-- EQUIPAMENTO -->
+    <div class="solic-field">
+      <div class="solic-label">Nº Imobilizado <span class="req">*</span></div>
+      <input class="solic-input" id="sEquipNum" placeholder="Ex: 161" type="number"
+        oninput="buscarEquip()">
+      <div class="equip-result" id="equipResult"></div>
+      <div class="equip-not-found" id="equipNotFound">Equipamento não encontrado</div>
+    </div>
+
+    <!-- DESCRIÇÃO -->
+    <div class="solic-field">
+      <div class="solic-label">O que precisa ser feito <span class="req">*</span></div>
+      <textarea class="solic-textarea" id="sDescricao" placeholder="Descreva o problema ou serviço..."></textarea>
+    </div>
+
+    <!-- PRAZO -->
+    <div class="solic-field">
+      <div class="solic-label">Prazo Final <span class="req">*</span></div>
+      <input class="solic-input" id="sPrazo" type="date">
+    </div>
+
+    <button class="solic-send-btn" onclick="enviarSolic()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.092.537 4.06 1.479 5.779L0 24l6.418-1.684A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.007-1.371l-.36-.214-3.724.977.993-3.63-.234-.373A9.818 9.818 0 1112 21.818z"/></svg>
+      Enviar via WhatsApp
+    </button>
+    <button class="solic-cancel-btn" onclick="closeSolic()">Cancelar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
   <div class="modal"><div class="modal-handle"></div><div id="modalContent"></div></div>
 </div>
@@ -296,7 +515,7 @@
   // ──────────────────────────────────────────────────────────
 
   let allOS = [], currentFilter = 'todos';
-  let mapFunc = {}, mapSetor = {}, mapEquip = {};
+  let mapFunc = {}, mapSetor = {}, mapEquip = {}, mapEquipNum = {};
   let mapProdBase = {}, mapVariedade = {}, mapProdFull = {};
   let mapFilial = {}; // idFilial → siglaFilial
   let osProdCache = {};
@@ -405,6 +624,12 @@
       mapFunc    = Object.fromEntries(funcs.map(f   => [f.idFuncionario,  f.nome]));
       mapSetor   = Object.fromEntries(setores.map(s  => [s.idSetor,        s.nomeSetor]));
       mapEquip   = Object.fromEntries(equips.map(e   => [e.idImobilizado,  `${e.marca||''} ${e.modelo||''}`.trim()]));
+      // mapEquipNum: idImobilizado → numeroImobilizado (para busca pelo número)
+      mapEquipNum = Object.fromEntries(equips.map(e  => [String(e.idImobilizado), String(e.numeroImobilizado||'')]));
+      // Também cria mapa invertido: numeroImobilizado → idImobilizado para busca direta
+      const mapNumToId = Object.fromEntries(equips.map(e => [String(e.numeroImobilizado||''), String(e.idImobilizado)]));
+      // Sobrescreve buscarEquip para usar ambos os mapas
+      window._mapNumToId = mapNumToId;
       mapProdBase = Object.fromEntries(prodBase.map(p => [String(p.idNomeProduto), p.nomeProduto]));
       mapVariedade = Object.fromEntries(prodVar.map(v  => [String(v.idVariedade),   v.nomeVariedade]));
       mapFilial  = Object.fromEntries(filiais.map(f  => [String(f.idFilial), f.siglaFilial]));
@@ -700,6 +925,171 @@
     const t = document.getElementById('toast');
     t.textContent = msg; t.className = 'toast'+(isError?' error':'');
     t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000);
+  }
+
+  // ── SETTINGS ──────────────────────────────────────────────
+  function loadSettings() {
+    const s = JSON.parse(localStorage.getItem('gsb_settings') || '{}');
+    document.getElementById('cfgWhatsHGO').value = s.whatsHGO || '';
+    document.getElementById('cfgWhatsHBA').value = s.whatsHBA || '';
+  }
+
+  function saveSettings() {
+    const s = {
+      whatsHGO: document.getElementById('cfgWhatsHGO').value.trim().replace(/\D/g,''),
+      whatsHBA: document.getElementById('cfgWhatsHBA').value.trim().replace(/\D/g,''),
+    };
+    localStorage.setItem('gsb_settings', JSON.stringify(s));
+    closeSettings();
+    showToast('Configurações salvas!');
+  }
+
+  function openSettings()  { loadSettings(); document.getElementById('settingsOverlay').classList.add('open'); }
+  function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
+  function closeSettingsOutside(e) { if (e.target===document.getElementById('settingsOverlay')) closeSettings(); }
+
+  function getWhatsFilial() {
+    const s = JSON.parse(localStorage.getItem('gsb_settings') || '{}');
+    return filialSigla === 'HBA' ? (s.whatsHBA || '') : (s.whatsHGO || '');
+  }
+
+  // ── SOLICITANTES ───────────────────────────────────────────
+  function getSolicitantes() {
+    return JSON.parse(localStorage.getItem('gsb_solicitantes') || '[]');
+  }
+
+  function saveSolicitante(nome) {
+    const list = getSolicitantes();
+    if (!list.includes(nome)) { list.push(nome); localStorage.setItem('gsb_solicitantes', JSON.stringify(list)); }
+  }
+
+  function deleteSolicitante(nome) {
+    const list = getSolicitantes().filter(n => n !== nome);
+    localStorage.setItem('gsb_solicitantes', JSON.stringify(list));
+    filterSolicitantes();
+  }
+
+  function renderSolicitantesList(items) {
+    const el = document.getElementById('solicitantesList');
+    const input = document.getElementById('sNome').value.trim();
+    let html = items.map(n => `
+      <div class="solic-dropdown-item" onmousedown="selectSolicitante('${n.replace(/'/g,"\\'")}')">
+        <span>${n}</span>
+        <span class="del-btn" onmousedown="event.stopPropagation();deleteSolicitante('${n.replace(/'/g,"\\'")}')">✕</span>
+      </div>`).join('');
+    // Opção de adicionar novo se digitou algo que não existe
+    if (input && !items.includes(input)) {
+      html += `<div class="solic-add-new" onmousedown="addNovoSolicitante()">+ Adicionar "${input}"</div>`;
+    }
+    el.innerHTML = html;
+    el.classList.toggle('open', html.length > 0);
+  }
+
+  function filterSolicitantes() {
+    const val = document.getElementById('sNome').value.trim().toLowerCase();
+    const all = getSolicitantes();
+    const filtered = val ? all.filter(n => n.toLowerCase().includes(val)) : all;
+    renderSolicitantesList(filtered);
+  }
+
+  function showSolicitantes() { filterSolicitantes(); }
+  function hideSolicitantesDelay() { setTimeout(() => document.getElementById('solicitantesList').classList.remove('open'), 200); }
+
+  function selectSolicitante(nome) {
+    document.getElementById('sNome').value = nome;
+    document.getElementById('solicitantesList').classList.remove('open');
+  }
+
+  function addNovoSolicitante() {
+    const nome = document.getElementById('sNome').value.trim();
+    if (nome) { saveSolicitante(nome); selectSolicitante(nome); }
+  }
+
+  // ── EQUIPAMENTO SEARCH ─────────────────────────────────────
+  function buscarEquip() {
+    const num = document.getElementById('sEquipNum').value.trim();
+    const res = document.getElementById('equipResult');
+    const nf  = document.getElementById('equipNotFound');
+    res.classList.remove('show'); nf.classList.remove('show');
+    if (!num) return;
+    // Tenta achar pelo numeroImobilizado (ex: "42") ou pelo idImobilizado
+    const mapNumToId = window._mapNumToId || {};
+    const idByNum    = mapNumToId[num];
+    const nomeByNum  = idByNum ? mapEquip[idByNum] : null;
+    const nomeById   = mapEquip[num];
+    const nome       = nomeByNum || nomeById;
+    if (nome) {
+      res.textContent = '✓ ' + nome;
+      res.classList.add('show');
+    } else {
+      nf.classList.add('show');
+    }
+  }
+
+  // ── SOLICITATION ──────────────────────────────────────────
+  function openSolic() {
+    const hoje = new Date();
+    const yyyy = hoje.getFullYear();
+    const mm   = String(hoje.getMonth()+1).padStart(2,'0');
+    const dd   = String(hoje.getDate()).padStart(2,'0');
+    document.getElementById('sPrazo').value = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('sNome').value = '';
+    document.getElementById('sEquipNum').value = '';
+    document.getElementById('sDescricao').value = '';
+    document.getElementById('equipResult').classList.remove('show');
+    document.getElementById('equipNotFound').classList.remove('show');
+    document.getElementById('solicitantesList').classList.remove('open');
+    document.getElementById('solicOverlay').classList.add('open');
+  }
+
+  function closeSolic() { document.getElementById('solicOverlay').classList.remove('open'); }
+  function closeSolicOutside(e) { if (e.target===document.getElementById('solicOverlay')) closeSolic(); }
+
+  function enviarSolic() {
+    const nome      = document.getElementById('sNome').value.trim();
+    const equipNum  = document.getElementById('sEquipNum').value.trim();
+    const equipRes  = document.getElementById('equipResult');
+    const descricao = document.getElementById('sDescricao').value.trim();
+    const prazoISO  = document.getElementById('sPrazo').value;
+    const whats     = getWhatsFilial().replace(/\D/g,'');
+
+    if (!nome)      { showToast('Informe o solicitante', true); return; }
+    if (!equipNum)  { showToast('Informe o Nº do imobilizado', true); return; }
+    if (!equipRes.classList.contains('show')) { showToast('Equipamento não encontrado', true); return; }
+    if (!descricao) { showToast('Descreva o que precisa ser feito', true); return; }
+    if (!prazoISO)  { showToast('Informe o prazo final', true); return; }
+    if (!whats || whats.length < 10) {
+      showToast('Configure o WhatsApp da filial em ⚙️', true); return;
+    }
+
+    // Salva solicitante para uso futuro
+    saveSolicitante(nome);
+
+    const hoje = new Date();
+    const dataHoje = String(hoje.getDate()).padStart(2,'0') + '/' +
+                     String(hoje.getMonth()+1).padStart(2,'0') + '/' + hoje.getFullYear();
+
+    const [py, pm, pd] = prazoISO.split('-');
+    const prazoFmt = `${pd}/${pm}/${py}`;
+    const equipNome = equipRes.textContent.replace('✓ ','');
+
+    const msg =
+`📋 *PENDENTE — Lançar OS no Sistema GSB*
+Filial: ${filialSigla||'–'}
+
+📅 *Data da solicitação:* ${dataHoje}
+⏰ *Prazo final:* ${prazoFmt}
+👤 *Solicitante:* ${nome}
+🔧 *Equipamento:* Nº ${equipNum} — ${equipNome}
+
+📝 *O que precisa ser feito:*
+${descricao}
+
+_Favor lançar no sistema GSB._`;
+
+    window.open(`https://wa.me/${whats}?text=${encodeURIComponent(msg)}`, '_blank');
+    closeSolic();
+    showToast('Abrindo WhatsApp...');
   }
 
   init();
