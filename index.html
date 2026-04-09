@@ -246,7 +246,23 @@
   const MANUT_MAP  = { P:'Preventiva', C:'Corretiva', N:'Não' };
 
   function toAPIDate(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${d}${m}${y}`; }
-  function fmtDate(d) { if(!d) return '–'; const p=d.split('T')[0].split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
+  function fmtDate(d) {
+    if(!d) return '–';
+    const clean = String(d).replace(' ','T').split('.')[0];
+    const dt = new Date(clean);
+    if(isNaN(dt)) return d;
+    const dd=String(dt.getDate()).padStart(2,'0'), mm=String(dt.getMonth()+1).padStart(2,'0');
+    return dd+'/'+mm+'/'+dt.getFullYear();
+  }
+  function fmtDateTime(d) {
+    if(!d) return '–';
+    const clean = String(d).replace(' ','T').split('.')[0];
+    const dt = new Date(clean);
+    if(isNaN(dt)) return d;
+    const dd=String(dt.getDate()).padStart(2,'0'), mm=String(dt.getMonth()+1).padStart(2,'0');
+    const hh=String(dt.getHours()).padStart(2,'0'), mi=String(dt.getMinutes()).padStart(2,'0');
+    return dd+'/'+mm+'/'+dt.getFullYear()+' '+hh+':'+mi;
+  }
   function fmtVal(v) { if(!v||v==='null'||v===null) return '–'; return 'R$ ' + parseFloat(v).toFixed(2).replace('.',','); }
   function uc(id) { return id==1?'urgente':id==2?'normal':'baixa'; }
   function ut(id) { return id==1?'Urgente':id==2?'Normal':'Baixa'; }
@@ -376,7 +392,7 @@
   }
 
   function filterOS() {
-    if (currentFilter==='urgente')    return allOS.filter(o => o.idUrgencia==1);
+    if (currentFilter==='urgente')    return allOS.filter(o => o.idUrgencia==1 && o.osConcluida==='N');
     if (currentFilter==='aberta')     return allOS.filter(o => o.osConcluida==='N');
     if (currentFilter==='preventiva') return allOS.filter(o => o.manutencao==='P' || o.tipo==='P');
     if (currentFilter==='concluida')  return allOS.filter(o => o.osConcluida==='S');
@@ -396,21 +412,22 @@
       return;
     }
 
+    // Ordem decrescente por data de início (mais recente primeiro)
+    // Urgentes em andamento primeiro quando filtro urgente
     const sorted = [...list].sort((a,b) =>
-      a.idUrgencia != b.idUrgencia
-        ? a.idUrgencia - b.idUrgencia
-        : new Date(b.dataInicio) - new Date(a.dataInicio)
+      new Date(b.dataInicio) - new Date(a.dataInicio)
     );
 
     document.getElementById('osList').innerHTML = sorted.map(os => {
       const prods = osProdCache[String(os.idOrdemServico)] || [];
       const prodCount = prods.length;
+      const equipNome = os.idImobilizado ? ename(os.idImobilizado) : '';
       return `
       <div class="os-card ${uc(os.idUrgencia)}" onclick="openModal(${os.idOrdemServico})">
         <div class="os-header">
           <div>
             <div class="os-num">OS #${os.numeroOrs || os.idOrdemServico}</div>
-            <div class="os-num-label">${TIPO_MAP[os.tipo]||os.tipo||'–'} · ${MANUT_MAP[os.manutencao]||'–'}</div>
+            <div class="os-num-label">${TIPO_MAP[os.tipo]||os.tipo||'–'} · ${MANUT_MAP[os.manutencao]||'–'}${equipNome ? ' · ' + equipNome : ''}</div>
           </div>
           <div class="badges">
             <span class="badge ${uc(os.idUrgencia)}">${ut(os.idUrgencia)}</span>
@@ -427,9 +444,11 @@
         </div>
         ${os.observacao ? `<div class="os-field"><span class="os-field-key">Obs</span><span class="os-field-val">${os.observacao}</span></div>` : ''}
         <div class="os-footer">
-          <span class="os-date">📅 ${fmtDate(os.dataInicio)}</span>
-          <span class="os-equip" title="${ename(os.idImobilizado)}">${os.idImobilizado ? ename(os.idImobilizado) : 'sem equip.'}</span>
+          <span class="os-date">🕐 Início: ${fmtDateTime(os.dataInicio)}</span>
         </div>
+        ${os.dataFim ? `<div class="os-footer" style="margin-top:4px;padding-top:4px;border-top:none;">
+          <span class="os-date">🏁 Fim: ${fmtDateTime(os.dataFim)}</span>
+        </div>` : ''}
         ${prodCount > 0 ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--accent);font-weight:500;">🔩 ${prodCount} produto${prodCount>1?'s':''} utilizado${prodCount>1?'s':''}</div>` : ''}
       </div>`;
     }).join('');
