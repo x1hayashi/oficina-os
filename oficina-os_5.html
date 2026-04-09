@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Oficina — OS Abertas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface2: #eef0f4;
+    --border: #dde1e9;
+    --accent: #1a56db;
+    --accent-light: #e8effe;
+    --red: #c0392b;
+    --red-light: #fdecea;
+    --yellow: #b45309;
+    --yellow-light: #fef3c7;
+    --green: #166534;
+    --green-light: #dcfce7;
+    --text: #111827;
+    --text2: #4b5563;
+    --text3: #9ca3af;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --radius: 12px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; padding-bottom: 40px; font-size: 16px; }
+
+  /* HEADER */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: #fff; border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: var(--shadow);
+  }
+  .logo { font-size: 17px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+  .logo span { color: var(--accent); }
+  .refresh-btn {
+    background: var(--accent); color: #fff; border: none;
+    padding: 8px 16px; border-radius: 8px; font-family: var(--sans);
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: opacity 0.2s;
+  }
+  .refresh-btn:hover { opacity: 0.88; }
+  .refresh-btn.loading { opacity: 0.5; pointer-events: none; }
+  .spin { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* DATE */
+  .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 20px 8px; }
+  .date-label { font-size: 12px; font-weight: 500; color: var(--text3); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 5px; }
+  .date-input { background: var(--surface); border: 1.5px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-family: var(--sans); font-size: 14px; width: 100%; outline: none; transition: border-color 0.2s; }
+  .date-input:focus { border-color: var(--accent); }
+
+  /* STATS */
+  .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 20px; }
+  .stat-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center; box-shadow: var(--shadow); }
+  .stat-num { font-family: var(--mono); font-size: 26px; font-weight: 500; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; font-weight: 500; color: var(--text3); letter-spacing: 0.05em; text-transform: uppercase; }
+  .stat-card.urgente .stat-num   { color: var(--red); }
+  .stat-card.andamento .stat-num { color: var(--yellow); }
+  .stat-card.total .stat-num     { color: var(--accent); }
+
+  /* FILTERS */
+  .filters { padding: 4px 20px 12px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-chip { flex-shrink: 0; background: var(--surface); border: 1.5px solid var(--border); color: var(--text2); padding: 7px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.18s; white-space: nowrap; }
+  .filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .section-label { padding: 4px 20px 10px; font-size: 13px; font-weight: 500; color: var(--text3); display: flex; align-items: center; justify-content: space-between; }
+
+  /* OS CARDS */
+  .os-list { padding: 0 20px; display: flex; flex-direction: column; gap: 12px; }
+  .os-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: all 0.15s; border-left: 4px solid var(--border); box-shadow: var(--shadow); }
+  .os-card:active { transform: scale(0.985); box-shadow: none; }
+  .os-card.urgente { border-left-color: var(--red); }
+  .os-card.normal  { border-left-color: var(--yellow); }
+  .os-card.baixa   { border-left-color: var(--green); }
+  .os-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+  .os-num { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--accent); line-height: 1; }
+  .os-num-label { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .badges { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; flex-shrink: 0; }
+  .badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+  .badge.urgente { background: var(--red-light);    color: var(--red); }
+  .badge.normal  { background: var(--yellow-light); color: var(--yellow); }
+  .badge.baixa   { background: var(--green-light);  color: var(--green); }
+  .badge.st-A    { background: var(--yellow-light); color: var(--yellow); }
+  .badge.st-L    { background: var(--green-light);  color: var(--green); }
+  .badge.st-P    { background: var(--surface2);     color: var(--text2); }
+  .badge.st-C    { background: var(--green-light);  color: var(--green); }
+  .badge.st-F    { background: var(--surface2);     color: var(--text3); }
+  .os-field { display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px; }
+  .os-field-key { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; min-width: 80px; }
+  .os-field-val { font-size: 15px; color: var(--text); line-height: 1.4; }
+  .os-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); gap: 8px; }
+  .os-date { font-size: 13px; color: var(--text3); }
+  .os-equip { font-size: 13px; font-weight: 500; color: var(--accent); background: var(--accent-light); padding: 4px 10px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; backdrop-filter: blur(3px); }
+  .modal-overlay.open { display: flex; align-items: flex-end; }
+  .modal { background: var(--surface); border-radius: 20px 20px 0 0; border-top: 1.5px solid var(--border); width: 100%; max-height: 88vh; overflow-y: auto; padding: 20px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.34,1.4,0.64,1); box-shadow: 0 -4px 24px rgba(0,0,0,0.12); }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-family: var(--mono); font-size: 24px; color: var(--accent); margin-bottom: 2px; font-weight: 500; }
+  .modal-subtitle { font-size: 13px; color: var(--text3); margin-bottom: 18px; }
+
+  /* MODAL TABS */
+  .modal-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+  .modal-tab { padding: 10px 18px; font-size: 14px; font-weight: 500; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.18s; white-space: nowrap; }
+  .modal-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .modal-section { margin-bottom: 22px; }
+  .modal-section-title { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1.5px solid var(--border); }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .detail-item.full { grid-column: span 2; }
+  .detail-key { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+  .detail-val { font-size: 15px; color: var(--text); line-height: 1.4; }
+  .detail-val.green  { color: var(--green);  font-weight: 500; }
+  .detail-val.red    { color: var(--red);    font-weight: 500; }
+  .detail-val.yellow { color: var(--yellow); font-weight: 500; }
+  .obs-box { background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 15px; color: var(--text2); line-height: 1.6; }
+
+  /* PRODUCTS TABLE */
+  .prod-empty { text-align: center; padding: 32px 20px; color: var(--text3); font-size: 14px; }
+  .prod-loading { text-align: center; padding: 32px 20px; }
+  .prod-spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
+  .prod-spinner-label { font-size: 13px; color: var(--text3); }
+
+  .prod-list { display: flex; flex-direction: column; gap: 10px; }
+  .prod-item {
+    background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 14px;
+  }
+  .prod-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; line-height: 1.3; }
+  .prod-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .prod-meta-item { }
+  .prod-meta-key { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+  .prod-meta-val { font-size: 14px; color: var(--text); font-weight: 500; }
+  .prod-meta-val.accent { color: var(--accent); }
+  .prod-meta-val.green  { color: var(--green); }
+
+  .prod-total-row {
+    margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .prod-total-label { font-size: 13px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; }
+  .prod-total-val { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--accent); }
+
+  /* LOADING */
+  .loading-box { text-align: center; padding: 60px 20px; }
+  .loading-spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  .loading-label { font-size: 15px; color: var(--text3); }
+
+  /* STATE */
+  .state-box { text-align: center; padding: 60px 20px; }
+  .state-icon { font-size: 44px; margin-bottom: 14px; }
+  .state-title { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+  .state-sub { font-size: 14px; line-height: 1.5; color: var(--text3); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: #fff; padding: 11px 22px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 300; transition: transform 0.3s; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--red); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Oficina <span>/ OS</span></div>
+  <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">
+    <span id="refreshIcon">↻</span> Atualizar
+  </button>
+</div>
+
+<div class="date-row">
+  <div><div class="date-label">De</div><input class="date-input" type="date" id="dateStart"></div>
+  <div><div class="date-label">Até</div><input class="date-input" type="date" id="dateEnd"></div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-card urgente"><div class="stat-num" id="statUrgente">–</div><div class="stat-label">Urgente</div></div>
+  <div class="stat-card andamento"><div class="stat-num" id="statAberta">–</div><div class="stat-label">Em Aberto</div></div>
+  <div class="stat-card total"><div class="stat-num" id="statTotal">–</div><div class="stat-label">Total</div></div>
+</div>
+
+<div class="filters">
+  <div class="filter-chip active" onclick="setFilter('todos',this)">Todas</div>
+  <div class="filter-chip" onclick="setFilter('urgente',this)">🔴 Urgente</div>
+  <div class="filter-chip" onclick="setFilter('aberta',this)">Em andamento</div>
+  <div class="filter-chip" onclick="setFilter('preventiva',this)">Preventiva</div>
+  <div class="filter-chip" onclick="setFilter('concluida',this)">Concluída</div>
+</div>
+
+<div class="section-label">
+  <span id="sectionCount">–</span>
+  <span id="lastUpdate"></span>
+</div>
+
+<div class="os-list" id="osList">
+  <div class="state-box">
+    <div class="state-icon">🔧</div>
+    <div class="state-title">Carregando...</div>
+    <div class="state-sub">Buscando ordens de serviço</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal"><div class="modal-handle"></div><div id="modalContent"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── CREDENCIAIS & PROXY ────────────────────────────────────
+  const CLIENTE   = "cf051147574882010032";
+  const TOKEN     = "$2a$10$BueYcMU8EZboMx3Fy12S8";
+  const PROXY_URL = "https://gsb-proxy.onrender.com";
+  // ──────────────────────────────────────────────────────────
+
+  let allOS = [], currentFilter = 'todos';
+  let mapFunc = {}, mapSetor = {}, mapEquip = {};
+  // mapProdBase: idNomeProduto → nomeProduto
+  // mapVariedade: idVariedade → nomeVariedade
+  // mapProdFull: idProduto → nome completo (nomeProduto + nomeVariedade)
+  let mapProdBase = {}, mapVariedade = {}, mapProdFull = {};
+  // Cache de produtos por OS: { idOrdemServico: [...] }
+  let osProdCache = {};
+  // Todos os produtos de OS carregados no período atual
+  let allOSProd = [];
+
+  const TIPO_MAP   = { I:'Interna', E:'Externa', P:'Preventiva' };
+  const STATUS_MAP = { A:'Aberta', L:'Liberada', P:'Pendente', C:'Concluída', F:'Fechada' };
+  const MANUT_MAP  = { P:'Preventiva', C:'Corretiva', N:'Não' };
+
+  function toAPIDate(iso) { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${d}${m}${y}`; }
+  function fmtDate(d) { if(!d) return '–'; const p=d.split('T')[0].split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
+  function fmtVal(v) { if(!v||v==='null'||v===null) return '–'; return 'R$ ' + parseFloat(v).toFixed(2).replace('.',','); }
+  function uc(id) { return id==1?'urgente':id==2?'normal':'baixa'; }
+  function ut(id) { return id==1?'Urgente':id==2?'Normal':'Baixa'; }
+  function fname(id) { return id ? (mapFunc[id] || `#${id}`) : '–'; }
+  function sname(id) { return id ? (mapSetor[id] || `#${id}`) : '–'; }
+  function ename(id) { return id ? (mapEquip[id] || `#${id}`) : '–'; }
+  function pname(id) { return id ? (mapProdFull[id] || `Produto #${id}`) : '–'; }
+  function firstTwo(n) { if(!n||n==='–') return n; const p=n.trim().split(' '); return p.length>1?p[0]+' '+p[1]:p[0]; }
+
+  function init() {
+    const today = new Date(), past = new Date();
+    past.setDate(today.getDate() - 30);
+    document.getElementById('dateEnd').value   = today.toISOString().split('T')[0];
+    document.getElementById('dateStart').value = past.toISOString().split('T')[0];
+    document.getElementById('dateStart').addEventListener('change', loadAll);
+    document.getElementById('dateEnd').addEventListener('change', loadAll);
+    loadAll();
+  }
+
+  async function apiFetch(endpoint) {
+    const url = `${PROXY_URL}/proxy/${endpoint}/${CLIENTE}/${encodeURIComponent(TOKEN)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} (${endpoint})`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [data];
+  }
+
+  async function apiFetchDated(endpoint, d1, d2) {
+    const url = `${PROXY_URL}/proxy/${endpoint}/${d1}/${d2}/${CLIENTE}/${encodeURIComponent(TOKEN)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} (${endpoint})`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [data];
+  }
+
+  async function loadAll() {
+    const btn = document.getElementById('refreshBtn');
+    const icon = document.getElementById('refreshIcon');
+    btn.classList.add('loading'); icon.classList.add('spin');
+    osProdCache = {};
+
+    document.getElementById('osList').innerHTML = `
+      <div class="loading-box">
+        <div class="loading-spinner"></div>
+        <div class="loading-label" id="loadingLabel">Carregando dados...</div>
+      </div>`;
+
+    try {
+      setLoadingLabel('Buscando cadastros...');
+      const [funcs, setores, equips, prodBase, prodVar, prodList] = await Promise.all([
+        apiFetch('funcionarios'),
+        apiFetch('setores'),
+        apiFetch('imobilizados'),
+        apiFetch('produtosnomes'),
+        apiFetch('produtosvariedades'),
+        apiFetch('produtos'),
+      ]);
+
+      mapFunc    = Object.fromEntries(funcs.map(f   => [f.idFuncionario,  f.nome]));
+      mapSetor   = Object.fromEntries(setores.map(s  => [s.idSetor,        s.nomeSetor]));
+      mapEquip   = Object.fromEntries(equips.map(e   => [e.idImobilizado,  `${e.marca||''} ${e.modelo||''}`.trim()]));
+      mapProdBase = Object.fromEntries(prodBase.map(p => [String(p.idNomeProduto), p.nomeProduto]));
+      mapVariedade = Object.fromEntries(prodVar.map(v  => [String(v.idVariedade),   v.nomeVariedade]));
+
+      // Monta nome completo: idProduto → "NOME BASE · Variedade" (ou só o nome base se sem variedade)
+      mapProdFull = {};
+      for (const p of prodList) {
+        const base = mapProdBase[String(p.idNomeProduto)] || '';
+        const var_ = p.idVariedade ? (mapVariedade[String(p.idVariedade)] || '') : '';
+        mapProdFull[String(p.idProduto)] = var_ ? `${base} · ${var_}` : base || `#${p.idProduto}`;
+      }
+
+      setLoadingLabel('Buscando ordens de serviço...');
+      const d1 = toAPIDate(document.getElementById('dateStart').value);
+      const d2 = toAPIDate(document.getElementById('dateEnd').value);
+
+      // Busca OS e produtos do período em paralelo
+      const [osData, osProdData] = await Promise.all([
+        apiFetchDated('ordemservicos', d1, d2),
+        apiFetchDated('ordemservicosprodutos', d1, d2),
+      ]);
+
+      allOS     = osData;
+      allOSProd = osProdData;
+
+      // Agrupa produtos por idOrdemServico
+      osProdCache = {};
+      for (const p of allOSProd) {
+        const oid = String(p.idOrdemServico);
+        if (!osProdCache[oid]) osProdCache[oid] = [];
+        osProdCache[oid].push(p);
+      }
+
+      updateStats(); renderList();
+      document.getElementById('lastUpdate').textContent =
+        'Atualizado ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      showToast(`${allOS.length} OS · ${allOSProd.length} produtos`);
+
+    } catch(e) {
+      showToast('Erro: ' + e.message, true);
+      document.getElementById('osList').innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">⚠️</div>
+          <div class="state-title">Erro de conexão</div>
+          <div class="state-sub">${e.message}</div>
+        </div>`;
+    } finally {
+      btn.classList.remove('loading'); icon.classList.remove('spin');
+    }
+  }
+
+  function setLoadingLabel(txt) {
+    const el = document.getElementById('loadingLabel');
+    if (el) el.textContent = txt;
+  }
+
+  function updateStats() {
+    document.getElementById('statUrgente').textContent = allOS.filter(o => o.idUrgencia==1 && o.osConcluida==='N').length;
+    document.getElementById('statAberta').textContent  = allOS.filter(o => o.osConcluida==='N').length;
+    document.getElementById('statTotal').textContent   = allOS.length;
+  }
+
+  function setFilter(f, el) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active'); renderList();
+  }
+
+  function filterOS() {
+    if (currentFilter==='urgente')    return allOS.filter(o => o.idUrgencia==1);
+    if (currentFilter==='aberta')     return allOS.filter(o => o.osConcluida==='N');
+    if (currentFilter==='preventiva') return allOS.filter(o => o.manutencao==='P' || o.tipo==='P');
+    if (currentFilter==='concluida')  return allOS.filter(o => o.osConcluida==='S');
+    return allOS;
+  }
+
+  function renderList() {
+    const list = filterOS();
+    document.getElementById('sectionCount').textContent =
+      `${list.length} Ordem${list.length!==1?'s':''} de Serviço`;
+
+    if (!list.length) {
+      document.getElementById('osList').innerHTML = `
+        <div class="state-box"><div class="state-icon">✅</div>
+        <div class="state-title">Nenhuma OS</div>
+        <div class="state-sub">Sem registros para este filtro</div></div>`;
+      return;
+    }
+
+    const sorted = [...list].sort((a,b) =>
+      a.idUrgencia != b.idUrgencia
+        ? a.idUrgencia - b.idUrgencia
+        : new Date(b.dataInicio) - new Date(a.dataInicio)
+    );
+
+    document.getElementById('osList').innerHTML = sorted.map(os => {
+      const prods = osProdCache[String(os.idOrdemServico)] || [];
+      const prodCount = prods.length;
+      return `
+      <div class="os-card ${uc(os.idUrgencia)}" onclick="openModal(${os.idOrdemServico})">
+        <div class="os-header">
+          <div>
+            <div class="os-num">OS #${os.numeroOrs || os.idOrdemServico}</div>
+            <div class="os-num-label">${TIPO_MAP[os.tipo]||os.tipo||'–'} · ${MANUT_MAP[os.manutencao]||'–'}</div>
+          </div>
+          <div class="badges">
+            <span class="badge ${uc(os.idUrgencia)}">${ut(os.idUrgencia)}</span>
+            <span class="badge st-${os.status||'P'}">${STATUS_MAP[os.status]||os.status||'–'}</span>
+          </div>
+        </div>
+        <div class="os-field">
+          <span class="os-field-key">Solicitante</span>
+          <span class="os-field-val">${firstTwo(fname(os.idSolicitante))}</span>
+        </div>
+        <div class="os-field">
+          <span class="os-field-key">Setor</span>
+          <span class="os-field-val">${sname(os.idSetor)}</span>
+        </div>
+        ${os.observacao ? `<div class="os-field"><span class="os-field-key">Obs</span><span class="os-field-val">${os.observacao}</span></div>` : ''}
+        <div class="os-footer">
+          <span class="os-date">📅 ${fmtDate(os.dataInicio)}</span>
+          <span class="os-equip" title="${ename(os.idImobilizado)}">${os.idImobilizado ? ename(os.idImobilizado) : 'sem equip.'}</span>
+        </div>
+        ${prodCount > 0 ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--accent);font-weight:500;">🔩 ${prodCount} produto${prodCount>1?'s':''} utilizado${prodCount>1?'s':''}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── MODAL TABS ─────────────────────────────────────────────
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    document.getElementById('tabn-' + tabId).classList.add('active');
+  }
+
+  function openModal(id) {
+    const os = allOS.find(o => o.idOrdemServico==id); if(!os) return;
+    const urgColor = os.idUrgencia==1?'red':os.idUrgencia==2?'yellow':'green';
+    const prods = osProdCache[String(os.idOrdemServico)] || [];
+
+    // Build products HTML
+    let prodsHTML = '';
+    if (prods.length === 0) {
+      prodsHTML = `<div class="prod-empty">Nenhum produto registrado nesta OS</div>`;
+    } else {
+      // Calc total geral
+      const totalGeral = prods.reduce((acc, p) => {
+        const vt = parseFloat(p.valorTotal);
+        return acc + (isNaN(vt) ? 0 : vt);
+      }, 0);
+
+      const items = prods.map(p => {
+        // Resolve nome completo via mapProdFull (idProduto → nome base · variedade)
+        const nomeProd = pname(p.idProduto);
+        const qtd  = p.quantidade || '–';
+        const vUnit = fmtVal(p.valorUnitario);
+        const vTot  = fmtVal(p.valorTotal);
+        return `
+        <div class="prod-item">
+          <div class="prod-name">${nomeProd}</div>
+          <div class="prod-meta">
+            <div class="prod-meta-item">
+              <div class="prod-meta-key">Quantidade</div>
+              <div class="prod-meta-val accent">${qtd}</div>
+            </div>
+            <div class="prod-meta-item">
+              <div class="prod-meta-key">Vlr. Unit.</div>
+              <div class="prod-meta-val">${vUnit}</div>
+            </div>
+            <div class="prod-meta-item">
+              <div class="prod-meta-key">Vlr. Total</div>
+              <div class="prod-meta-val green">${vTot}</div>
+            </div>
+            <div class="prod-meta-item">
+              <div class="prod-meta-key">Lote</div>
+              <div class="prod-meta-val">${p.lote||'–'}</div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      const totalRow = totalGeral > 0 ? `
+        <div class="prod-total-row">
+          <span class="prod-total-label">Total de Materiais</span>
+          <span class="prod-total-val">R$ ${totalGeral.toFixed(2).replace('.',',')}</span>
+        </div>` : '';
+
+      prodsHTML = `<div class="prod-list">${items}</div>${totalRow}`;
+    }
+
+    document.getElementById('modalContent').innerHTML = `
+      <div class="modal-title">OS #${os.numeroOrs || os.idOrdemServico}</div>
+      <div class="modal-subtitle">ID interno: ${os.idOrdemServico}</div>
+
+      <div class="modal-tabs">
+        <div class="modal-tab active" id="tabn-info" onclick="switchTab('info')">Informações</div>
+        <div class="modal-tab" id="tabn-resp" onclick="switchTab('resp')">Responsáveis</div>
+        <div class="modal-tab" id="tabn-prod" onclick="switchTab('prod')">
+          Materiais ${prods.length > 0 ? `<span style="background:var(--accent);color:#fff;padding:1px 6px;border-radius:10px;font-size:11px;margin-left:4px;">${prods.length}</span>` : ''}
+        </div>
+      </div>
+
+      <!-- TAB: INFORMAÇÕES -->
+      <div class="tab-panel active" id="tab-info">
+        <div class="modal-section">
+          <div class="modal-section-title">Status & Classificação</div>
+          <div class="detail-grid">
+            <div class="detail-item"><div class="detail-key">Status</div>
+              <div class="detail-val ${os.status==='L'?'green':os.status==='A'?'yellow':''}">${STATUS_MAP[os.status]||os.status||'–'}</div></div>
+            <div class="detail-item"><div class="detail-key">Urgência</div>
+              <div class="detail-val ${urgColor}">${ut(os.idUrgencia)}</div></div>
+            <div class="detail-item"><div class="detail-key">Tipo</div>
+              <div class="detail-val">${TIPO_MAP[os.tipo]||os.tipo||'–'}</div></div>
+            <div class="detail-item"><div class="detail-key">Manutenção</div>
+              <div class="detail-val">${MANUT_MAP[os.manutencao]||'–'}</div></div>
+            <div class="detail-item"><div class="detail-key">Concluída</div>
+              <div class="detail-val ${os.osConcluida==='S'?'green':'red'}">${os.osConcluida==='S'?'Sim':'Não'}</div></div>
+            <div class="detail-item"><div class="detail-key">Aprovada</div>
+              <div class="detail-val ${os.aprovado==='S'?'green':''}">${os.aprovado==='S'?'Sim':'Não'}</div></div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="modal-section-title">Localização & Equipamento</div>
+          <div class="detail-grid">
+            <div class="detail-item full"><div class="detail-key">Setor</div><div class="detail-val">${sname(os.idSetor)}</div></div>
+            <div class="detail-item full"><div class="detail-key">Equipamento</div><div class="detail-val">${ename(os.idImobilizado)}</div></div>
+            <div class="detail-item"><div class="detail-key">KM/h Início</div><div class="detail-val">${os.kmHoraInicial||'–'}</div></div>
+            <div class="detail-item"><div class="detail-key">KM/h Fim</div><div class="detail-val">${os.kmHoraFinal||'–'}</div></div>
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <div class="modal-section-title">Datas</div>
+          <div class="detail-grid">
+            <div class="detail-item"><div class="detail-key">Abertura</div><div class="detail-val">${fmtDate(os.dataInicio)}</div></div>
+            <div class="detail-item"><div class="detail-key">Entrega</div><div class="detail-val">${fmtDate(os.dataEntrega)}</div></div>
+            <div class="detail-item"><div class="detail-key">Fim</div><div class="detail-val">${fmtDate(os.dataFim)}</div></div>
+            <div class="detail-item"><div class="detail-key">Aprovação</div><div class="detail-val">${fmtDate(os.dataAprovacao)}</div></div>
+          </div>
+        </div>
+
+        ${os.observacao ? `
+        <div class="modal-section">
+          <div class="modal-section-title">Observação</div>
+          <div class="obs-box">${os.observacao}</div>
+        </div>` : ''}
+      </div>
+
+      <!-- TAB: RESPONSÁVEIS -->
+      <div class="tab-panel" id="tab-resp">
+        <div class="modal-section">
+          <div class="modal-section-title">Responsáveis</div>
+          <div class="detail-grid">
+            <div class="detail-item full"><div class="detail-key">Solicitante</div><div class="detail-val">${fname(os.idSolicitante)}</div></div>
+            <div class="detail-item full"><div class="detail-key">Executante</div><div class="detail-val">${fname(os.idExecutante)}</div></div>
+            <div class="detail-item full"><div class="detail-key">Responsável</div><div class="detail-val">${fname(os.idResponsavel)}</div></div>
+            <div class="detail-item full"><div class="detail-key">Aprovador</div><div class="detail-val">${fname(os.idAprovador)}</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: MATERIAIS/PRODUTOS -->
+      <div class="tab-panel" id="tab-prod">
+        <div class="modal-section">
+          <div class="modal-section-title">Materiais Utilizados</div>
+          ${prodsHTML}
+        </div>
+      </div>
+    `;
+
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function closeModal(e) {
+    if (e.target===document.getElementById('modalOverlay'))
+      document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  function showToast(msg, isError=false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast'+(isError?' error':'');
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000);
+  }
+
+  init();
+</script>
+</body>
+</html>
