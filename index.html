@@ -668,6 +668,16 @@
     return Array.isArray(data) ? data : [data];
   }
 
+  // Helper: fetch com delay entre chamadas para evitar rate limit (HTTP 429)
+  async function apiFetchSeq(endpoints) {
+    const results = [];
+    for (const ep of endpoints) {
+      results.push(await apiFetch(ep));
+      await new Promise(r => setTimeout(r, 150)); // 150ms entre chamadas
+    }
+    return results;
+  }
+
   async function loadAll() {
     const btn = document.getElementById('refreshBtn');
     const icon = document.getElementById('refreshIcon');
@@ -682,28 +692,24 @@
 
     try {
       setLoadingLabel('Buscando cadastros...');
-      const [funcs, setores, equips, prodBase, prodVar, prodList, filiais] = await Promise.all([
-        apiFetch('funcionarios'),
-        apiFetch('setores'),
-        apiFetch('imobilizados'),
-        apiFetch('produtosnomes'),
-        apiFetch('produtosvariedades'),
-        apiFetch('produtos'),
-        apiFetch('filiais'),
+      const [funcs, setores, equips, filiais] = await apiFetchSeq([
+        'funcionarios', 'setores', 'imobilizados', 'filiais'
+      ]);
+
+      setLoadingLabel('Buscando produtos...');
+      const [prodBase, prodVar, prodList] = await apiFetchSeq([
+        'produtosnomes', 'produtosvariedades', 'produtos'
       ]);
 
       mapFunc    = Object.fromEntries(funcs.map(f   => [f.idFuncionario,  f.nome]));
       mapSetor   = Object.fromEntries(setores.map(s  => [s.idSetor,        s.nomeSetor]));
       mapEquip   = Object.fromEntries(equips.map(e   => [e.idImobilizado,  `${e.marca||''} ${e.modelo||''}`.trim()]));
-      // mapEquipNum: idImobilizado → numeroImobilizado (para busca pelo número)
       mapEquipNum = Object.fromEntries(equips.map(e  => [String(e.idImobilizado), String(e.numeroImobilizado||'')]));
-      // Também cria mapa invertido: numeroImobilizado → idImobilizado para busca direta
       const mapNumToId = Object.fromEntries(equips.map(e => [String(e.numeroImobilizado||''), String(e.idImobilizado)]));
-      // Sobrescreve buscarEquip para usar ambos os mapas
       window._mapNumToId = mapNumToId;
-      mapProdBase = Object.fromEntries(prodBase.map(p => [String(p.idNomeProduto), p.nomeProduto]));
+      mapProdBase  = Object.fromEntries(prodBase.map(p => [String(p.idNomeProduto), p.nomeProduto]));
       mapVariedade = Object.fromEntries(prodVar.map(v  => [String(v.idVariedade),   v.nomeVariedade]));
-      mapFilial  = Object.fromEntries(filiais.map(f  => [String(f.idFilial), f.siglaFilial]));
+      mapFilial    = Object.fromEntries(filiais.map(f  => [String(f.idFilial), f.siglaFilial]));
 
       // Encontra o idFilial pela sigla escolhida
       const filialObj = filiais.find(f => f.siglaFilial === filialSigla);
@@ -721,11 +727,10 @@
       const d1 = toAPIDate(document.getElementById('dateStart').value);
       const d2 = toAPIDate(document.getElementById('dateEnd').value);
 
-      // Busca OS e produtos do período em paralelo
-      const [osData, osProdData] = await Promise.all([
-        apiFetchDated('ordemservicos', d1, d2),
-        apiFetchDated('ordemservicosprodutos', d1, d2),
-      ]);
+      // Busca OS e produtos sequencialmente para evitar rate limit
+      const osData = await apiFetchDated('ordemservicos', d1, d2);
+      await new Promise(r => setTimeout(r, 150));
+      const osProdData = await apiFetchDated('ordemservicosprodutos', d1, d2);
 
       allOS     = filialId ? osData.filter(o => String(o.idFilial) === filialId) : osData;
       allOSProd = filialId ? osProdData.filter(p => {
