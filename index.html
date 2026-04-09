@@ -175,12 +175,73 @@
 
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* FILIAL SELECTOR */
+  .filial-screen {
+    position: fixed; inset: 0; background: var(--bg);
+    z-index: 500; display: flex; align-items: center; justify-content: center;
+    padding: 30px 24px;
+  }
+  .filial-screen.hidden { display: none; }
+  .filial-box {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 32px 24px; width: 100%; max-width: 360px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.1); text-align: center;
+  }
+  .filial-icon { font-size: 40px; margin-bottom: 16px; }
+  .filial-title { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .filial-sub { font-size: 14px; color: var(--text3); margin-bottom: 28px; line-height: 1.5; }
+  .filial-btns { display: flex; flex-direction: column; gap: 12px; }
+  .filial-btn {
+    padding: 16px; border-radius: 12px; border: 2px solid var(--border);
+    background: var(--surface); cursor: pointer; transition: all 0.18s;
+    text-align: left; display: flex; align-items: center; gap: 14px;
+  }
+  .filial-btn:hover, .filial-btn:active { border-color: var(--accent); background: var(--accent-light); }
+  .filial-btn-sigla {
+    font-family: var(--mono); font-size: 18px; font-weight: 500;
+    color: var(--accent); background: var(--accent-light);
+    padding: 8px 14px; border-radius: 8px; flex-shrink: 0;
+  }
+  .filial-btn-info { }
+  .filial-btn-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .filial-btn-desc { font-size: 13px; color: var(--text3); margin-top: 2px; }
+  .filial-badge {
+    display: inline-block; margin-top: 12px; padding: 4px 12px;
+    background: var(--accent-light); color: var(--accent);
+    border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer;
+  }
 </style>
 </head>
 <body>
 
+<!-- FILIAL SELECTOR -->
+<div class="filial-screen" id="filialScreen">
+  <div class="filial-box">
+    <div class="filial-icon">🏭</div>
+    <div class="filial-title">Selecione a Filial</div>
+    <div class="filial-sub">Escolha a unidade para visualizar as Ordens de Serviço</div>
+    <div class="filial-btns">
+      <button class="filial-btn" onclick="selectFilial('HGO')">
+        <span class="filial-btn-sigla">HGO</span>
+        <div class="filial-btn-info">
+          <div class="filial-btn-name">Goiás</div>
+          <div class="filial-btn-desc">Filial HGO</div>
+        </div>
+      </button>
+      <button class="filial-btn" onclick="selectFilial('HBA')">
+        <span class="filial-btn-sigla">HBA</span>
+        <div class="filial-btn-info">
+          <div class="filial-btn-name">Bahia</div>
+          <div class="filial-btn-desc">Filial HBA</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="header">
-  <div class="logo">Oficina <span>/ OS</span></div>
+  <div class="logo">Oficina <span id="filialLabel">/ OS</span></div>
   <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">
     <span id="refreshIcon">↻</span> Atualizar
   </button>
@@ -209,6 +270,10 @@
   <span id="sectionCount">–</span>
   <span id="lastUpdate"></span>
 </div>
+<div style="padding: 0 20px 12px; display:flex; align-items:center; gap:8px;">
+  <span style="font-size:13px;color:var(--text3);">Filial:</span>
+  <span id="filialActiveBadge" class="filial-badge" onclick="trocarFilial()">– Trocar</span>
+</div>
 
 <div class="os-list" id="osList">
   <div class="state-box">
@@ -232,14 +297,12 @@
 
   let allOS = [], currentFilter = 'todos';
   let mapFunc = {}, mapSetor = {}, mapEquip = {};
-  // mapProdBase: idNomeProduto → nomeProduto
-  // mapVariedade: idVariedade → nomeVariedade
-  // mapProdFull: idProduto → nome completo (nomeProduto + nomeVariedade)
   let mapProdBase = {}, mapVariedade = {}, mapProdFull = {};
-  // Cache de produtos por OS: { idOrdemServico: [...] }
+  let mapFilial = {}; // idFilial → siglaFilial
   let osProdCache = {};
-  // Todos os produtos de OS carregados no período atual
   let allOSProd = [];
+  let filialSigla = ''; // sigla selecionada (ex: 'HGO')
+  let filialId    = ''; // idFilial correspondente
 
   const TIPO_MAP   = { I:'Interna', E:'Externa', P:'Preventiva' };
   const STATUS_MAP = { A:'Aberta', L:'Liberada', P:'Pendente', C:'Concluída', F:'Fechada' };
@@ -279,7 +342,24 @@
     document.getElementById('dateStart').value = past.toISOString().split('T')[0];
     document.getElementById('dateStart').addEventListener('change', loadAll);
     document.getElementById('dateEnd').addEventListener('change', loadAll);
+    // Mostra tela de seleção de filial
+    document.getElementById('filialScreen').classList.remove('hidden');
+  }
+
+  function selectFilial(sigla) {
+    filialSigla = sigla;
+    document.getElementById('filialScreen').classList.add('hidden');
+    document.getElementById('filialLabel').textContent = '/ ' + sigla;
+    document.getElementById('filialActiveBadge').textContent = sigla + ' ↺ Trocar';
     loadAll();
+  }
+
+  function trocarFilial() {
+    filialSigla = '';
+    filialId    = '';
+    allOS = [];
+    document.getElementById('osList').innerHTML = '';
+    document.getElementById('filialScreen').classList.remove('hidden');
   }
 
   async function apiFetch(endpoint) {
@@ -312,13 +392,14 @@
 
     try {
       setLoadingLabel('Buscando cadastros...');
-      const [funcs, setores, equips, prodBase, prodVar, prodList] = await Promise.all([
+      const [funcs, setores, equips, prodBase, prodVar, prodList, filiais] = await Promise.all([
         apiFetch('funcionarios'),
         apiFetch('setores'),
         apiFetch('imobilizados'),
         apiFetch('produtosnomes'),
         apiFetch('produtosvariedades'),
         apiFetch('produtos'),
+        apiFetch('filiais'),
       ]);
 
       mapFunc    = Object.fromEntries(funcs.map(f   => [f.idFuncionario,  f.nome]));
@@ -326,8 +407,13 @@
       mapEquip   = Object.fromEntries(equips.map(e   => [e.idImobilizado,  `${e.marca||''} ${e.modelo||''}`.trim()]));
       mapProdBase = Object.fromEntries(prodBase.map(p => [String(p.idNomeProduto), p.nomeProduto]));
       mapVariedade = Object.fromEntries(prodVar.map(v  => [String(v.idVariedade),   v.nomeVariedade]));
+      mapFilial  = Object.fromEntries(filiais.map(f  => [String(f.idFilial), f.siglaFilial]));
 
-      // Monta nome completo: idProduto → "NOME BASE · Variedade" (ou só o nome base se sem variedade)
+      // Encontra o idFilial pela sigla escolhida
+      const filialObj = filiais.find(f => f.siglaFilial === filialSigla);
+      filialId = filialObj ? String(filialObj.idFilial) : '';
+
+      // Monta nome completo: idProduto → "NOME BASE · Variedade"
       mapProdFull = {};
       for (const p of prodList) {
         const base = mapProdBase[String(p.idNomeProduto)] || '';
@@ -345,8 +431,12 @@
         apiFetchDated('ordemservicosprodutos', d1, d2),
       ]);
 
-      allOS     = osData;
-      allOSProd = osProdData;
+      allOS     = filialId ? osData.filter(o => String(o.idFilial) === filialId) : osData;
+      allOSProd = filialId ? osProdData.filter(p => {
+        // filtra produtos cujas OS pertencem à filial
+        const osIds = new Set(allOS.map(o => String(o.idOrdemServico)));
+        return osIds.has(String(p.idOrdemServico));
+      }) : osProdData;
 
       // Agrupa produtos por idOrdemServico
       osProdCache = {};
