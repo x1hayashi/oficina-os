@@ -353,6 +353,54 @@
     background: var(--accent-light); color: var(--accent);
     border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer;
   }
+
+  /* MAIN TABS */
+  .main-tabs {
+    display: flex; border-bottom: 2px solid var(--border);
+    background: var(--surface); padding: 0 20px;
+    position: sticky; top: 57px; z-index: 90;
+  }
+  .main-tab {
+    padding: 12px 16px; font-size: 15px; font-weight: 500;
+    color: var(--text3); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+    transition: all 0.18s; display: flex; align-items: center; gap: 6px;
+  }
+  .main-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-count {
+    background: var(--red); color: #fff;
+    font-size: 11px; font-weight: 700;
+    padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center;
+  }
+  .tab-count.zero { background: var(--border); color: var(--text3); }
+
+  /* PENDING CARDS */
+  .pend-list { padding: 12px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .pend-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    border-left: 4px solid var(--yellow); box-shadow: var(--shadow);
+  }
+  .pend-card.lancada { border-left-color: var(--green); opacity: 0.7; }
+  .pend-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .pend-equip { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--text); line-height: 1; }
+  .pend-equip-nome { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .pend-badge {
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0;
+  }
+  .pend-badge.pendente { background: var(--yellow-light); color: var(--yellow); }
+  .pend-badge.lancada  { background: var(--green-light);  color: var(--green); }
+  .pend-field { display: flex; gap: 8px; margin-bottom: 5px; align-items: baseline; }
+  .pend-key { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; min-width: 72px; }
+  .pend-val { font-size: 14px; color: var(--text); line-height: 1.4; }
+  .pend-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .pend-date { font-size: 12px; color: var(--text3); }
+  .pend-del-btn {
+    font-size: 12px; color: var(--text3); background: none; border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 6px; cursor: pointer;
+  }
+  .pend-del-btn:hover { color: var(--red); border-color: var(--red); }
 </style>
 </head>
 <body>
@@ -392,39 +440,59 @@
   </div>
 </div>
 
-<div class="date-row">
+<div class="date-row" id="dateRowEl">
   <div><div class="date-label">De</div><input class="date-input" type="date" id="dateStart"></div>
   <div><div class="date-label">Até</div><input class="date-input" type="date" id="dateEnd"></div>
 </div>
 
-<div class="stats-bar">
+<div class="stats-bar" id="statsBarEl">
   <div class="stat-card urgente"><div class="stat-num" id="statUrgente">–</div><div class="stat-label">Urgente</div></div>
   <div class="stat-card andamento"><div class="stat-num" id="statAberta">–</div><div class="stat-label">Em Aberto</div></div>
   <div class="stat-card total"><div class="stat-num" id="statTotal">–</div><div class="stat-label">Total</div></div>
 </div>
 
-<div class="filters">
-  <div class="filter-chip active" onclick="setFilter('todos',this)">Todas</div>
-  <div class="filter-chip" onclick="setFilter('urgente',this)">🔴 Urgente</div>
-  <div class="filter-chip" onclick="setFilter('aberta',this)">Em andamento</div>
-  <div class="filter-chip" onclick="setFilter('preventiva',this)">Preventiva</div>
-  <div class="filter-chip" onclick="setFilter('concluida',this)">Concluída</div>
+<!-- MAIN TABS -->
+<div class="main-tabs">
+  <div class="main-tab active" id="mainTabOS" onclick="switchMainTab('os')">OS do Sistema</div>
+  <div class="main-tab" id="mainTabPend" onclick="switchMainTab('pendentes')">
+    Pendentes <span class="tab-count zero" id="pendCount">0</span>
+  </div>
 </div>
 
-<div class="section-label">
-  <span id="sectionCount">–</span>
-  <span id="lastUpdate"></span>
-</div>
-<div style="padding: 0 20px 12px; display:flex; align-items:center; gap:8px;">
-  <span style="font-size:13px;color:var(--text3);">Filial:</span>
-  <span id="filialActiveBadge" class="filial-badge" onclick="trocarFilial()">– Trocar</span>
+<!-- TAB OS -->
+<div id="panelOS">
+  <div class="filters">
+    <div class="filter-chip active" onclick="setFilter('todos',this)">Todas</div>
+    <div class="filter-chip" onclick="setFilter('urgente',this)">🔴 Urgente</div>
+    <div class="filter-chip" onclick="setFilter('aberta',this)">Em andamento</div>
+    <div class="filter-chip" onclick="setFilter('preventiva',this)">Preventiva</div>
+    <div class="filter-chip" onclick="setFilter('concluida',this)">Concluída</div>
+  </div>
+  <div class="section-label">
+    <span id="sectionCount">–</span>
+    <span id="lastUpdate"></span>
+  </div>
+  <div style="padding: 0 20px 8px; display:flex; align-items:center; gap:8px;">
+    <span style="font-size:13px;color:var(--text3);">Filial:</span>
+    <span id="filialActiveBadge" class="filial-badge" onclick="trocarFilial()">– Trocar</span>
+  </div>
+  <div class="os-list" id="osList">
+    <div class="state-box">
+      <div class="state-icon">🔧</div>
+      <div class="state-title">Carregando...</div>
+      <div class="state-sub">Buscando ordens de serviço</div>
+    </div>
+  </div>
 </div>
 
-<div class="os-list" id="osList">
-  <div class="state-box">
-    <div class="state-icon">🔧</div>
-    <div class="state-title">Carregando...</div>
-    <div class="state-sub">Buscando ordens de serviço</div>
+<!-- TAB PENDENTES -->
+<div id="panelPendentes" style="display:none;">
+  <div class="pend-list" id="pendList">
+    <div class="state-box">
+      <div class="state-icon">✅</div>
+      <div class="state-title">Nenhuma solicitação pendente</div>
+      <div class="state-sub">As solicitações aguardando lançamento aparecerão aqui</div>
+    </div>
   </div>
 </div>
 
@@ -439,6 +507,9 @@
 
     <div class="settings-section">
       <div class="settings-section-title">WhatsApp dos Responsáveis</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5;">
+        Estes números são centralizados — ao salvar, todos os usuários do app serão afetados.
+      </div>
       <div class="solic-field">
         <div class="solic-label">Filial HGO — Goiás</div>
         <input class="solic-input" id="cfgWhatsHGO" placeholder="5562999990000" type="tel">
@@ -450,7 +521,7 @@
       </div>
     </div>
 
-    <button class="settings-save-btn" onclick="saveSettings()">Salvar Configurações</button>
+    <button class="settings-save-btn" onclick="saveSettings()">Salvar para Todos</button>
     <button class="solic-cancel-btn" onclick="closeSettings()">Fechar</button>
   </div>
 </div>
@@ -675,6 +746,8 @@
       document.getElementById('lastUpdate').textContent =
         'Atualizado ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
       showToast(`${allOS.length} OS · ${allOSProd.length} produtos`);
+      // Verifica pendentes após carregar OS
+      loadPendentes();
 
     } catch(e) {
       showToast('Erro: ' + e.message, true);
@@ -927,112 +1000,121 @@
     t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000);
   }
 
-  // ── SETTINGS ──────────────────────────────────────────────
-  function loadSettings() {
-    const s = JSON.parse(localStorage.getItem('gsb_settings') || '{}');
-    document.getElementById('cfgWhatsHGO').value = s.whatsHGO || '';
-    document.getElementById('cfgWhatsHBA').value = s.whatsHBA || '';
+  // ── MAIN TABS ──────────────────────────────────────────────
+  let currentMainTab = 'os';
+
+  function switchMainTab(tab) {
+    currentMainTab = tab;
+    document.getElementById('mainTabOS').classList.toggle('active', tab === 'os');
+    document.getElementById('mainTabPend').classList.toggle('active', tab === 'pendentes');
+    document.getElementById('panelOS').style.display        = tab === 'os'        ? '' : 'none';
+    document.getElementById('panelPendentes').style.display = tab === 'pendentes' ? '' : 'none';
+    document.getElementById('dateRowEl').style.display      = tab === 'os'        ? '' : 'none';
+    document.getElementById('statsBarEl').style.display     = tab === 'os'        ? '' : 'none';
+    if (tab === 'pendentes') renderPendentes();
   }
 
-  function saveSettings() {
-    const s = {
+  // ── SETTINGS (CENTRALIZADO NO SERVIDOR) ───────────────────
+  async function loadSettings() {
+    try {
+      const res = await fetch(`${PROXY_URL}/config`);
+      const cfg = await res.json();
+      document.getElementById('cfgWhatsHGO').value = cfg.whatsHGO || '';
+      document.getElementById('cfgWhatsHBA').value = cfg.whatsHBA || '';
+    } catch(e) { showToast('Erro ao carregar config', true); }
+  }
+
+  async function saveSettings() {
+    const body = {
       whatsHGO: document.getElementById('cfgWhatsHGO').value.trim().replace(/\D/g,''),
       whatsHBA: document.getElementById('cfgWhatsHBA').value.trim().replace(/\D/g,''),
     };
-    localStorage.setItem('gsb_settings', JSON.stringify(s));
-    closeSettings();
-    showToast('Configurações salvas!');
+    try {
+      await fetch(`${PROXY_URL}/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      closeSettings();
+      showToast('Configurações salvas para todos!');
+    } catch(e) { showToast('Erro ao salvar', true); }
+  }
+
+  async function getWhatsFilial() {
+    try {
+      const res = await fetch(`${PROXY_URL}/config`);
+      const cfg = await res.json();
+      return filialSigla === 'HBA' ? (cfg.whatsHBA || '') : (cfg.whatsHGO || '');
+    } catch { return ''; }
   }
 
   function openSettings()  { loadSettings(); document.getElementById('settingsOverlay').classList.add('open'); }
   function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
   function closeSettingsOutside(e) { if (e.target===document.getElementById('settingsOverlay')) closeSettings(); }
 
-  function getWhatsFilial() {
-    const s = JSON.parse(localStorage.getItem('gsb_settings') || '{}');
-    return filialSigla === 'HBA' ? (s.whatsHBA || '') : (s.whatsHGO || '');
-  }
-
-  // ── SOLICITANTES ───────────────────────────────────────────
+  // ── SOLICITANTES (local, acumulativo) ─────────────────────
   function getSolicitantes() {
     return JSON.parse(localStorage.getItem('gsb_solicitantes') || '[]');
   }
-
   function saveSolicitante(nome) {
     const list = getSolicitantes();
     if (!list.includes(nome)) { list.push(nome); localStorage.setItem('gsb_solicitantes', JSON.stringify(list)); }
   }
-
   function deleteSolicitante(nome) {
     const list = getSolicitantes().filter(n => n !== nome);
     localStorage.setItem('gsb_solicitantes', JSON.stringify(list));
     filterSolicitantes();
   }
-
   function renderSolicitantesList(items) {
-    const el = document.getElementById('solicitantesList');
+    const el    = document.getElementById('solicitantesList');
     const input = document.getElementById('sNome').value.trim();
     let html = items.map(n => `
       <div class="solic-dropdown-item" onmousedown="selectSolicitante('${n.replace(/'/g,"\\'")}')">
         <span>${n}</span>
         <span class="del-btn" onmousedown="event.stopPropagation();deleteSolicitante('${n.replace(/'/g,"\\'")}')">✕</span>
       </div>`).join('');
-    // Opção de adicionar novo se digitou algo que não existe
-    if (input && !items.includes(input)) {
+    if (input && !items.includes(input))
       html += `<div class="solic-add-new" onmousedown="addNovoSolicitante()">+ Adicionar "${input}"</div>`;
-    }
     el.innerHTML = html;
     el.classList.toggle('open', html.length > 0);
   }
-
   function filterSolicitantes() {
     const val = document.getElementById('sNome').value.trim().toLowerCase();
     const all = getSolicitantes();
-    const filtered = val ? all.filter(n => n.toLowerCase().includes(val)) : all;
-    renderSolicitantesList(filtered);
+    renderSolicitantesList(val ? all.filter(n => n.toLowerCase().includes(val)) : all);
   }
-
   function showSolicitantes() { filterSolicitantes(); }
   function hideSolicitantesDelay() { setTimeout(() => document.getElementById('solicitantesList').classList.remove('open'), 200); }
-
   function selectSolicitante(nome) {
     document.getElementById('sNome').value = nome;
     document.getElementById('solicitantesList').classList.remove('open');
   }
-
   function addNovoSolicitante() {
     const nome = document.getElementById('sNome').value.trim();
     if (nome) { saveSolicitante(nome); selectSolicitante(nome); }
   }
 
-  // ── EQUIPAMENTO SEARCH ─────────────────────────────────────
+  // ── EQUIPAMENTO SEARCH (só sugere com número exato) ───────
   function buscarEquip() {
     const num = document.getElementById('sEquipNum').value.trim();
     const res = document.getElementById('equipResult');
     const nf  = document.getElementById('equipNotFound');
     res.classList.remove('show'); nf.classList.remove('show');
     if (!num) return;
-    // Tenta achar pelo numeroImobilizado (ex: "42") ou pelo idImobilizado
     const mapNumToId = window._mapNumToId || {};
-    const idByNum    = mapNumToId[num];
-    const nomeByNum  = idByNum ? mapEquip[idByNum] : null;
-    const nomeById   = mapEquip[num];
-    const nome       = nomeByNum || nomeById;
-    if (nome) {
-      res.textContent = '✓ ' + nome;
-      res.classList.add('show');
-    } else {
-      nf.classList.add('show');
-    }
+    // Só mostra resultado quando o número digitado é EXATO
+    const idByNum  = mapNumToId[num];
+    const nomeById = mapEquip[num];
+    const nome     = (idByNum ? mapEquip[idByNum] : null) || nomeById;
+    if (nome) { res.textContent = '✓ ' + nome; res.classList.add('show'); }
+    else       { nf.classList.add('show'); }
   }
 
-  // ── SOLICITATION ──────────────────────────────────────────
+  // ── SOLICITAÇÃO FORM ───────────────────────────────────────
   function openSolic() {
     const hoje = new Date();
-    const yyyy = hoje.getFullYear();
-    const mm   = String(hoje.getMonth()+1).padStart(2,'0');
-    const dd   = String(hoje.getDate()).padStart(2,'0');
-    document.getElementById('sPrazo').value = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('sPrazo').value =
+      `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
     document.getElementById('sNome').value = '';
     document.getElementById('sEquipNum').value = '';
     document.getElementById('sDescricao').value = '';
@@ -1041,37 +1123,54 @@
     document.getElementById('solicitantesList').classList.remove('open');
     document.getElementById('solicOverlay').classList.add('open');
   }
-
   function closeSolic() { document.getElementById('solicOverlay').classList.remove('open'); }
   function closeSolicOutside(e) { if (e.target===document.getElementById('solicOverlay')) closeSolic(); }
 
-  function enviarSolic() {
+  async function enviarSolic() {
     const nome      = document.getElementById('sNome').value.trim();
     const equipNum  = document.getElementById('sEquipNum').value.trim();
     const equipRes  = document.getElementById('equipResult');
     const descricao = document.getElementById('sDescricao').value.trim();
     const prazoISO  = document.getElementById('sPrazo').value;
-    const whats     = getWhatsFilial().replace(/\D/g,'');
 
     if (!nome)      { showToast('Informe o solicitante', true); return; }
     if (!equipNum)  { showToast('Informe o Nº do imobilizado', true); return; }
     if (!equipRes.classList.contains('show')) { showToast('Equipamento não encontrado', true); return; }
     if (!descricao) { showToast('Descreva o que precisa ser feito', true); return; }
     if (!prazoISO)  { showToast('Informe o prazo final', true); return; }
-    if (!whats || whats.length < 10) {
-      showToast('Configure o WhatsApp da filial em ⚙️', true); return;
-    }
 
-    // Salva solicitante para uso futuro
+    const whats = await getWhatsFilial();
+    if (!whats || whats.length < 10) { showToast('Configure o WhatsApp da filial em ⚙️', true); return; }
+
     saveSolicitante(nome);
 
     const hoje = new Date();
-    const dataHoje = String(hoje.getDate()).padStart(2,'0') + '/' +
-                     String(hoje.getMonth()+1).padStart(2,'0') + '/' + hoje.getFullYear();
+    const dataHoje = `${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
+    const [py,pm,pd] = prazoISO.split('-');
+    const prazoFmt  = `${pd}/${pm}/${py}`;
+    const equipNome = equipRes.textContent.replace('✓ ','').trim();
 
-    const [py, pm, pd] = prazoISO.split('-');
-    const prazoFmt = `${pd}/${pm}/${py}`;
-    const equipNome = equipRes.textContent.replace('✓ ','');
+    // Achar idImobilizado pelo número
+    const mapNumToId   = window._mapNumToId || {};
+    const idImobilizado = mapNumToId[equipNum] || equipNum;
+
+    // Salva solicitação no servidor
+    try {
+      await fetch(`${PROXY_URL}/solicitacoes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filial: filialSigla,
+          solicitante: nome,
+          idImobilizado,
+          numImobilizado: equipNum,
+          equipNome,
+          descricao,
+          prazo: prazoISO,
+          dataSolicit: hoje.toISOString(),
+        }),
+      });
+    } catch(e) { console.warn('Não salvou no servidor:', e.message); }
 
     const msg =
 `📋 *PENDENTE — Lançar OS no Sistema GSB*
@@ -1089,7 +1188,94 @@ _Favor lançar no sistema GSB._`;
 
     window.open(`https://wa.me/${whats}?text=${encodeURIComponent(msg)}`, '_blank');
     closeSolic();
-    showToast('Abrindo WhatsApp...');
+    showToast('Solicitação enviada!');
+    // Atualiza contador de pendentes
+    loadPendentes();
+  }
+
+  // ── PENDENTES ──────────────────────────────────────────────
+  let allPendentes = [];
+
+  async function loadPendentes() {
+    try {
+      const res  = await fetch(`${PROXY_URL}/solicitacoes`);
+      const list = await res.json();
+      // Filtra pela filial atual
+      allPendentes = list.filter(s => !filialSigla || s.filial === filialSigla);
+      // Verifica quais foram lançadas: existe OS com mesmo idImobilizado
+      // com dataInicio APÓS dataSolicit
+      for (const s of allPendentes) {
+        if (s.status === 'lançada') continue;
+        const solicitDt = new Date(s.dataSolicit);
+        const foiLancada = allOS.some(os =>
+          String(os.idImobilizado) === String(s.idImobilizado) &&
+          new Date(os.dataInicio) > solicitDt
+        );
+        if (foiLancada) {
+          s.status = 'lançada';
+          // Atualiza no servidor
+          fetch(`${PROXY_URL}/solicitacoes/${s.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'lançada' }),
+          }).catch(() => {});
+        }
+      }
+      // Conta pendentes não lançadas
+      const nPend = allPendentes.filter(s => s.status === 'pendente').length;
+      const countEl = document.getElementById('pendCount');
+      countEl.textContent = nPend;
+      countEl.className   = 'tab-count' + (nPend === 0 ? ' zero' : '');
+      if (currentMainTab === 'pendentes') renderPendentes();
+    } catch(e) { console.warn('Erro ao carregar pendentes:', e); }
+  }
+
+  function renderPendentes() {
+    const container = document.getElementById('pendList');
+    if (!allPendentes.length) {
+      container.innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">✅</div>
+          <div class="state-title">Nenhuma solicitação pendente</div>
+          <div class="state-sub">As solicitações aguardando lançamento aparecerão aqui</div>
+        </div>`;
+      return;
+    }
+    // Pendentes primeiro, depois lançadas
+    const sorted = [...allPendentes].sort((a,b) => {
+      if (a.status !== b.status) return a.status === 'pendente' ? -1 : 1;
+      return new Date(b.dataSolicit) - new Date(a.dataSolicit);
+    });
+    container.innerHTML = sorted.map(s => {
+      const isPend  = s.status === 'pendente';
+      const dtSolic = fmtDateTime(s.dataSolicit);
+      const [py,pm,pd] = (s.prazo||'').split('-');
+      const prazoFmt = s.prazo ? `${pd}/${pm}/${py}` : '–';
+      return `
+      <div class="pend-card ${isPend ? '' : 'lancada'}">
+        <div class="pend-header">
+          <div>
+            <div class="pend-equip">Nº ${s.numImobilizado||s.idImobilizado}</div>
+            <div class="pend-equip-nome">${s.equipNome||'–'}</div>
+          </div>
+          <span class="pend-badge ${isPend ? 'pendente' : 'lancada'}">${isPend ? '⏳ Pendente' : '✅ Lançada'}</span>
+        </div>
+        <div class="pend-field"><span class="pend-key">Solicitante</span><span class="pend-val">${s.solicitante}</span></div>
+        <div class="pend-field"><span class="pend-key">Descrição</span><span class="pend-val">${s.descricao}</span></div>
+        <div class="pend-field"><span class="pend-key">Prazo</span><span class="pend-val" style="color:${isPend?'var(--red)':'var(--text)'};font-weight:600;">${prazoFmt}</span></div>
+        <div class="pend-footer">
+          <span class="pend-date">Solicitado em ${dtSolic}</span>
+          <button class="pend-del-btn" onclick="deletePendente(${s.id})">Remover</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function deletePendente(id) {
+    try {
+      await fetch(`${PROXY_URL}/solicitacoes/${id}`, { method: 'DELETE' });
+      await loadPendentes();
+    } catch(e) { showToast('Erro ao remover', true); }
   }
 
   init();
