@@ -393,9 +393,10 @@
     </div>
     <div class="form-field">
       <div class="form-label">Nº Imobilizado <span class="req">*</span></div>
-      <input class="form-input" id="sEquipNum" placeholder="Ex: 161" type="number" oninput="buscarEquip()">
-      <div class="equip-result" id="equipResult"></div>
+      <input class="form-input" id="sEquipNum" placeholder="Digite o número exato (ex: 161)" type="number" oninput="buscarEquip()" style="margin-bottom:6px;">
+      <div class="equip-result" id="equipResult" style="cursor:pointer;" onclick="confirmarEquip()"></div>
       <div class="equip-nf" id="equipNF">Equipamento não encontrado</div>
+      <div id="equipConfirmed" style="display:none;margin-top:6px;padding:10px 14px;background:var(--green-light);border:1.5px solid var(--green);border-radius:10px;font-size:14px;color:var(--green);font-weight:600;">✅ <span id="equipConfirmedName"></span></div>
     </div>
     <div class="form-field">
       <div class="form-label">O que precisa ser feito <span class="req">*</span></div>
@@ -837,13 +838,27 @@ async function getWhatsFilial(){
 function buscarEquip(){
   const num=document.getElementById('sEquipNum').value.trim();
   const res=document.getElementById('equipResult'),nf=document.getElementById('equipNF');
+  const conf=document.getElementById('equipConfirmed');
   res.classList.remove('show');nf.classList.remove('show');
+  conf.style.display='none';
   if(!num)return;
   const mapNumToId=window._mapNumToId||{};
   const idByNum=mapNumToId[num];
   const nome=(idByNum?mapEquip[idByNum]:null)||mapEquip[num];
-  if(nome){res.textContent='✓ '+nome;res.classList.add('show');}
-  else nf.classList.add('show');
+  if(nome){
+    res.textContent='👆 Toque para confirmar: '+nome;
+    res.classList.add('show');
+  } else nf.classList.add('show');
+}
+
+function confirmarEquip(){
+  const res=document.getElementById('equipResult');
+  const conf=document.getElementById('equipConfirmed');
+  const confName=document.getElementById('equipConfirmedName');
+  const nome=res.textContent.replace('👆 Toque para confirmar: ','').trim();
+  confName.textContent=nome;
+  conf.style.display='block';
+  res.classList.remove('show');
 }
 
 // ── SOLICITATION ──────────────────────────────────────────
@@ -855,26 +870,40 @@ function openSolic(){
   document.getElementById('sDescricao').value='';
   document.getElementById('equipResult').classList.remove('show');
   document.getElementById('equipNF').classList.remove('show');
+  document.getElementById('equipConfirmed').style.display='none';
   document.getElementById('solicOverlay').classList.add('open');
 }
 
 async function enviarSolic(){
   const nome=sessUser?sessUser.nome:'';
   const equipNum=document.getElementById('sEquipNum').value.trim();
+  const equipConfirmed=document.getElementById('equipConfirmed');
+  const equipConfirmedName=document.getElementById('equipConfirmedName');
   const equipRes=document.getElementById('equipResult');
   const descricao=document.getElementById('sDescricao').value.trim();
   const prazoISO=document.getElementById('sPrazo').value;
   if(!equipNum){showToast('Informe o Nº do imobilizado',true);return;}
-  if(!equipRes.classList.contains('show')){showToast('Equipamento não encontrado',true);return;}
+  // Aceita se confirmado (verde) OU se ainda mostra sugestão
+  const isConfirmed = equipConfirmed.style.display !== 'none';
+  const hasSuggestion = equipRes.classList.contains('show');
+  if(!isConfirmed && !hasSuggestion){showToast('Equipamento não encontrado',true);return;}
   if(!descricao){showToast('Descreva o que precisa ser feito',true);return;}
   if(!prazoISO){showToast('Informe o prazo final',true);return;}
   const whats=await getWhatsFilial();
   if(!whats||whats.length<10){showToast('Configure o WhatsApp da filial em ⚙️',true);return;}
   const mapNumToId=window._mapNumToId||{};
   const idImobilizado=mapNumToId[equipNum]||equipNum;
-  const equipNome=equipRes.textContent.replace('✓ ','').trim();
+  // Usa nome confirmado ou da sugestão
+  const equipNome = isConfirmed
+    ? equipConfirmedName.textContent.trim()
+    : equipRes.textContent.replace('👆 Toque para confirmar: ','').trim();
   try{
-    await fetch(`${PROXY}/solicitacoes`,{method:'POST',headers:apiHeaders(),body:JSON.stringify({filial:filialSigla,solicitante:nome,idImobilizado,numImobilizado:equipNum,equipNome,descricao,prazo:prazoISO,dataSolicit:new Date().toISOString()})});
+    await fetch(`${PROXY}/solicitacoes`,{method:'POST',headers:apiHeaders(),body:JSON.stringify({
+      filial:filialSigla, solicitante:nome,
+      idImobilizado, numImobilizado:equipNum,
+      equipNome, descricao, prazo:prazoISO,
+      dataSolicit:new Date().toISOString()
+    })});
   }catch(e){console.warn('Não salvou:',e.message);}
   const hoje=new Date();
   const dataHoje=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
@@ -893,7 +922,15 @@ async function loadPendentes(){
     const res=await fetch(`${PROXY}/solicitacoes`,{headers:apiHeaders()});
     if(!res.ok)return;
     const list=await res.json();
-    allPendentes=list.filter(s=>!filialSigla||s.filial===filialSigla);
+    // Normaliza campos snake_case do Supabase para camelCase
+    const normalized = list.map(s=>({
+      ...s,
+      numImobilizado: s.num_imobilizado || s.numImobilizado || '',
+      idImobilizado:  s.id_imobilizado  || s.idImobilizado  || '',
+      equipNome:      s.equip_nome      || s.equipNome      || '',
+      dataSolicit:    s.data_solicit     || s.dataSolicit    || '',
+    }));
+    allPendentes=normalized.filter(s=>!filialSigla||s.filial===filialSigla);
     for(const s of allPendentes){
       if(s.status==='lançada')continue;
       const solDt=new Date(s.dataSolicit);
@@ -922,7 +959,7 @@ function renderPendentes(){
     const vencido=isPend&&prazoDate&&prazoDate<new Date();
     return`<div class="pend-card ${isPend?'':'lancada'}">
       <div class="pend-header">
-        <div><div class="pend-equip">Nº ${s.numImobilizado||s.idImobilizado}</div><div class="pend-equip-nome">${s.equipNome||'–'}</div></div>
+        <div><div class="pend-equip">Nº ${s.num_imobilizado||s.numImobilizado||s.id_imobilizado||s.idImobilizado||'–'}</div><div class="pend-equip-nome">${s.equip_nome||s.equipNome||'–'}</div></div>
         <span class="pend-badge ${isPend?'pendente':'lancada'}">${isPend?'⏳ Pendente':'✅ Lançada'}</span>
       </div>
       <div class="pend-field"><span class="pend-key">Solicitante</span><span class="pend-val">${s.solicitante}</span></div>
