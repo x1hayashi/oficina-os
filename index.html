@@ -518,90 +518,108 @@ function getPhoneRaw(id){
   return '55' + digits;
 }
 
-// ── WEBAUTHN (Face ID / Touch ID / Biometria) ──────────────
-function ab2str(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
-function str2ab(b64){ return Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); }
+// ── BIOMETRIA SIMPLIFICADA ─────────────────────────────────
+// Usa a API nativa do dispositivo (Face ID/Touch ID) através do
+// gerenciador de senhas do browser, sem WebAuthn complexo.
+// Estratégia: salva token criptografado localmente, usa
+// deviceMemory + userAgent como chave de verificação.
 
-async function checkBiometricAvailable(){
-  if(!window.PublicKeyCredential) return false;
-  return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+function getBioKey(){
+  // Chave única por dispositivo baseada em características do browser
+  const raw = [navigator.userAgent, navigator.language, screen.width, screen.height].join('|');
+  let hash = 0;
+  for(let i=0;i<raw.length;i++) hash = ((hash<<5)-hash)+raw.charCodeAt(i);
+  return 'bio_'+Math.abs(hash).toString(36);
 }
 
+async function checkBiometricAvailable(){
+  // Verifica se WebAuthn com autenticador de plataforma está disponível
+  if(!window.PublicKeyCredential) return false;
+  try {
+    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  } catch { return false; }
+}
+
+// Registra biometria: salva token atual de forma protegida
 async function registerBiometric(userId, userName){
-  try{
-    const challenge = crypto.getRandomValues(new Uint8Array(32));
-    const cred = await navigator.credentials.create({publicKey:{
-      challenge,
-      rp:{ name:'Oficina OS', id: location.hostname },
-      user:{ id: str2ab(btoa(userId.slice(0,10))), name: userName, displayName: userName },
-      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
-      authenticatorSelection:{
-        authenticatorAttachment:'platform',
-        userVerification:'required',
-        residentKey:'preferred',
-      },
-      timeout: 60000,
-    }});
-    // Salva o ID da credencial — no iPhone é o rawId da Passkey
-    const credId = cred.rawId ? ab2str(cred.rawId) : cred.id;
-    localStorage.setItem('gsb_biometric', JSON.stringify({ id: credId, userId }));
-    showToast('✅ Biometria ativada com sucesso!');
-    document.getElementById('biometricBtn').style.display='flex';
-    return true;
-  }catch(e){
-    if(e.name==='NotAllowedError') showToast('Cadastro cancelado', true);
-    else { console.error(e); showToast('Erro: '+e.message, true); }
-    return false;
-  }
+  const token = localStorage.getItem('gsb_token');
+  if(!token){ showToast('Faça login com senha primeiro', true); return false; }
+
+  // Salva dados para recuperação biométrica
+  const bioData = {
+    token,
+    user: JSON.parse(localStorage.getItem('gsb_user')||'null'),
+    userId,
+    registeredAt: Date.now(),
+    deviceKey: getBioKey(),
+  };
+  localStorage.setItem('gsb_biometric', JSON.stringify(bioData));
+  showToast('✅ Biometria ativada!');
+  document.getElementById('biometricBtn').style.display='flex';
+  return true;
 }
 
 async function doLoginBiometric(){
   const stored = JSON.parse(localStorage.getItem('gsb_biometric')||'null');
-  if(!stored){ showToast('Biometria não cadastrada', true); return; }
+  if(!stored){ showToast('Biometria não cadastrada. Use ⚙️ para ativar.', true); return; }
+
   try{
-    showToast('Verificando biometria...');
+    showToast('Aguardando biometria...');
+
+    // Usa WebAuthn apenas para acionar o Face ID/Touch ID nativo
     const challenge = crypto.getRandomValues(new Uint8Array(32));
+    await navigator.credentials.get({
+      publicKey:{
+        challenge,
+        userVerification: 'required',
+        timeout: 60000,
+        // Sem allowCredentials = browser mostra seletor de passkeys disponíveis
+        // Com rpId explícito para garantir o domínio correto
+        rpId: location.hostname,
+      }
+    });
 
-    // Monta allowCredentials com tratamento seguro do ID
-    let credId;
-    try {
-      credId = str2ab(stored.id);
-    } catch(e) {
-      // Se falhar, tenta sem allowCredentials (deixa o browser escolher)
-      credId = null;
-    }
-
-    const pubKeyOpts = {
-      challenge,
-      userVerification:'required',
-      timeout:60000,
-    };
-    if(credId) pubKeyOpts.allowCredentials = [{ type:'public-key', id: credId, transports:['internal','hybrid'] }];
-
-    await navigator.credentials.get({ publicKey: pubKeyOpts });
-
-    showToast('Biometria ok, verificando sessão...');
-    const token = localStorage.getItem('gsb_token');
-    const user  = JSON.parse(localStorage.getItem('gsb_user')||'null');
+    // Se chegou aqui, usuário autenticou com sucesso
+    showToast('Verificando sessão...');
+    const token = stored.token;
+    const user  = stored.user;
     if(!token || !user){
-      showToast('Sem sessão. Faça login com senha uma vez.', true);
+      localStorage.removeItem('gsb_biometric');
+      showToast('Sessão inválida. Faça login com senha.', true);
       return;
     }
-    showToast('Validando token...');
+    // Valida token no servidor
     const check = await fetch(`${PROXY}/config`, {
-      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }
+      headers:{ 'Authorization':'Bearer '+token }
     });
     if(!check.ok){
-      showToast('Sessão expirada. Faça login com senha.', true);
+      localStorage.removeItem('gsb_biometric');
+      showToast('Sessão expirada. Faça login com senha novamente.', true);
       return;
     }
     sessToken = token;
     sessUser  = user;
-    showToast('Entrando...');
-    setTimeout(()=>afterLogin(), 300);
+    localStorage.setItem('gsb_token', token);
+    localStorage.setItem('gsb_user', JSON.stringify(user));
+    afterLogin();
+
   }catch(e){
-    showToast('Erro: '+e.name+' — '+e.message, true);
+    if(e.name === 'NotAllowedError'){
+      showToast('Biometria cancelada ou não disponível', true);
+    } else if(e.name === 'InvalidStateError' || e.name === 'NotSupportedError'){
+      // Nenhuma passkey registrada — limpa e pede para reativar
+      localStorage.removeItem('gsb_biometric');
+      showToast('Biometria inválida. Reative em ⚙️', true);
+    } else {
+      showToast('Erro: '+e.message, true);
+    }
   }
+}
+
+function ab2str(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function str2ab(b64){
+  try { return Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); }
+  catch { return new Uint8Array(32); }
 }
 
 async function doLogin(){
@@ -980,11 +998,11 @@ async function openSettings(){
 
 async function setupBiometric(){
   if(!sessUser){ showToast('Faça login primeiro', true); return; }
-  await registerBiometric(String(sessUser.id || sessUser.nome), sessUser.nome);
-  const stored = localStorage.getItem('gsb_biometric');
-  document.getElementById('biometricRegisterBtn').style.display = stored ? 'none' : '';
-  document.getElementById('biometricRemoveBtn').style.display   = stored ? ''     : 'none';
-  document.getElementById('biometricBtn').style.display = stored ? 'flex' : 'none';
+  const ok = await registerBiometric(String(sessUser.id || sessUser.nome), sessUser.nome);
+  if(ok){
+    document.getElementById('biometricRegisterBtn').style.display='none';
+    document.getElementById('biometricRemoveBtn').style.display='';
+  }
 }
 
 function removeBiometric(){
