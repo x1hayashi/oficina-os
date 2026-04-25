@@ -393,6 +393,12 @@
       </div>
       <button class="btn-primary" onclick="saveSettings()">Salvar para Todos</button>
     </div>
+    <div class="settings-section" id="biometricSection" style="margin-top:16px;display:none">
+      <div class="settings-section-title">Biometria / Face ID</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Ative para entrar nos próximos acessos sem digitar a senha. Funciona por dispositivo.</div>
+      <button class="btn-primary" id="biometricRegisterBtn" onclick="setupBiometric()">🔒 Ativar Biometria neste dispositivo</button>
+      <button class="btn-ghost" id="biometricRemoveBtn" onclick="removeBiometric()" style="display:none;margin-top:8px;color:var(--red);border-color:var(--red)">Remover Biometria</button>
+    </div>
     <button class="btn-ghost" onclick="doLogout()">Sair da conta</button>
   </div>
 </div>
@@ -926,7 +932,35 @@ async function openSettings(){
     document.getElementById('cfgWhatsHGO').value=cfg.whatsHGO||'';
     document.getElementById('cfgWhatsHBA').value=cfg.whatsHBA||'';
   }catch{}
+  // Verifica biometria disponível
+  const available = await checkBiometricAvailable();
+  const section   = document.getElementById('biometricSection');
+  const stored    = localStorage.getItem('gsb_biometric');
+  if(available){
+    section.style.display='';
+    document.getElementById('biometricRegisterBtn').style.display = stored ? 'none' : '';
+    document.getElementById('biometricRemoveBtn').style.display   = stored ? ''     : 'none';
+  } else {
+    section.style.display='none';
+  }
   document.getElementById('settingsOverlay').classList.add('open');
+}
+
+async function setupBiometric(){
+  if(!sessUser){ showToast('Faça login primeiro', true); return; }
+  await registerBiometric(String(sessUser.id || sessUser.nome), sessUser.nome);
+  const stored = localStorage.getItem('gsb_biometric');
+  document.getElementById('biometricRegisterBtn').style.display = stored ? 'none' : '';
+  document.getElementById('biometricRemoveBtn').style.display   = stored ? ''     : 'none';
+  document.getElementById('biometricBtn').style.display = stored ? 'flex' : 'none';
+}
+
+function removeBiometric(){
+  localStorage.removeItem('gsb_biometric');
+  document.getElementById('biometricRegisterBtn').style.display='';
+  document.getElementById('biometricRemoveBtn').style.display='none';
+  document.getElementById('biometricBtn').style.display='none';
+  showToast('Biometria removida deste dispositivo');
 }
 async function saveSettings(){
   const body={whatsHGO:document.getElementById('cfgWhatsHGO').value.trim().replace(/\D/g,''),whatsHBA:document.getElementById('cfgWhatsHBA').value.trim().replace(/\D/g,'')};
