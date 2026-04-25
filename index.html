@@ -487,7 +487,7 @@ function pname(id){return id?(mapProdFull[id]||`Produto #${id}`):'–';}
 function showToast(msg,isError=false){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className='toast'+(isError?' error':'');t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3000);
+  setTimeout(()=>t.classList.remove('show'),5000);
 }
 function closeSheet(id){document.getElementById(id).classList.remove('open');}
 
@@ -561,12 +561,25 @@ async function doLoginBiometric(){
   try{
     showToast('Verificando biometria...');
     const challenge = crypto.getRandomValues(new Uint8Array(32));
-    await navigator.credentials.get({publicKey:{
+
+    // Monta allowCredentials com tratamento seguro do ID
+    let credId;
+    try {
+      credId = str2ab(stored.id);
+    } catch(e) {
+      // Se falhar, tenta sem allowCredentials (deixa o browser escolher)
+      credId = null;
+    }
+
+    const pubKeyOpts = {
       challenge,
-      allowCredentials:[{ type:'public-key', id: str2ab(stored.id), transports:['internal','hybrid'] }],
       userVerification:'required',
       timeout:60000,
-    }});
+    };
+    if(credId) pubKeyOpts.allowCredentials = [{ type:'public-key', id: credId, transports:['internal','hybrid'] }];
+
+    await navigator.credentials.get({ publicKey: pubKeyOpts });
+
     showToast('Biometria ok, verificando sessão...');
     const token = localStorage.getItem('gsb_token');
     const user  = JSON.parse(localStorage.getItem('gsb_user')||'null');
@@ -574,19 +587,18 @@ async function doLoginBiometric(){
       showToast('Sem sessão. Faça login com senha uma vez.', true);
       return;
     }
-    showToast('Validando token no servidor...');
+    showToast('Validando token...');
     const check = await fetch(`${PROXY}/config`, {
       headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }
     });
-    showToast('Resposta servidor: HTTP '+check.status);
     if(!check.ok){
-      showToast('Token expirado. Faça login com senha.', true);
+      showToast('Sessão expirada. Faça login com senha.', true);
       return;
     }
     sessToken = token;
     sessUser  = user;
     showToast('Entrando...');
-    afterLogin();
+    setTimeout(()=>afterLogin(), 300);
   }catch(e){
     showToast('Erro: '+e.name+' — '+e.message, true);
   }
