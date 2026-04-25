@@ -1187,6 +1187,7 @@ async function openAdmin(){
             ${u.status!=='aprovado'?`<button class="admin-action-btn aprovar" onclick="adminAcao(${u.id},'aprovado')">✓ Aprovar</button>`:''}
             ${u.status!=='bloqueado'?`<button class="admin-action-btn bloquear" onclick="adminAcao(${u.id},'bloqueado')">✕ Bloquear</button>`:''}
             ${!u.admin?`<button class="admin-action-btn" onclick="adminAcao(${u.id},'admin')">👑 Tornar Admin</button>`:''}
+            ${!u.admin?`<button class="admin-action-btn" style="color:var(--red);border-color:var(--red)" onclick="adminExcluir(${u.id},'${u.nome}')">🗑 Excluir</button>`:''}
           </div>
         </div>`).join('');
     }
@@ -1206,6 +1207,15 @@ async function adminAcao(id,acao){
     await fetch(`${PROXY}/admin/usuarios/${id}`,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(body)});
     showToast('Atualizado!');openAdmin();
   }catch{showToast('Erro',true);}
+}
+
+async function adminExcluir(id, nome){
+  if(!confirm(`Excluir o usuário "${nome}"? Esta ação não pode ser desfeita.`)) return;
+  try{
+    await fetch(`${PROXY}/admin/usuarios/${id}`,{method:'DELETE',headers:apiHeaders()});
+    showToast('Usuário excluído');
+    openAdmin();
+  }catch{showToast('Erro ao excluir',true);}
 }
 
 // ── INIT ──────────────────────────────────────────────────
