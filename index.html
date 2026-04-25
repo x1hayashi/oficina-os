@@ -559,6 +559,7 @@ async function doLoginBiometric(){
   const stored = JSON.parse(localStorage.getItem('gsb_biometric')||'null');
   if(!stored){ showToast('Biometria não cadastrada', true); return; }
   try{
+    showToast('Verificando biometria...');
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     await navigator.credentials.get({publicKey:{
       challenge,
@@ -566,28 +567,28 @@ async function doLoginBiometric(){
       userVerification:'required',
       timeout:60000,
     }});
-    // Biometria verificada — valida token no servidor
+    showToast('Biometria ok, verificando sessão...');
     const token = localStorage.getItem('gsb_token');
     const user  = JSON.parse(localStorage.getItem('gsb_user')||'null');
     if(!token || !user){
-      showToast('Sessão expirada. Faça login com senha uma vez.', true);
+      showToast('Sem sessão. Faça login com senha uma vez.', true);
       return;
     }
-    // Testa se o token ainda é válido
+    showToast('Validando token no servidor...');
     const check = await fetch(`${PROXY}/config`, {
       headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }
     });
+    showToast('Resposta servidor: HTTP '+check.status);
     if(!check.ok){
-      showToast('Sessão expirada. Faça login com senha uma vez.', true);
+      showToast('Token expirado. Faça login com senha.', true);
       return;
     }
-    // Token válido — entra direto
     sessToken = token;
     sessUser  = user;
+    showToast('Entrando...');
     afterLogin();
   }catch(e){
-    if(e.name==='NotAllowedError') showToast('Biometria cancelada', true);
-    else { console.error(e); showToast('Erro na biometria: '+e.message, true); }
+    showToast('Erro: '+e.name+' — '+e.message, true);
   }
 }
 
