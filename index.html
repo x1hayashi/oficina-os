@@ -1210,26 +1210,13 @@ async function adminAcao(id,acao){
 
 // ── INIT ──────────────────────────────────────────────────
 function init(){
-  // Check existing session
+  // Mostra botão de biometria imediatamente se cadastrado neste dispositivo
+  const stored = localStorage.getItem('gsb_biometric');
+  const btn = document.getElementById('biometricBtn');
+  if(btn && stored) btn.style.display='flex';
+
   if(sessToken&&sessUser){
     afterLogin();
-  } else {
-    // Mostra botão de biometria na tela de login se já foi cadastrado
-    checkBiometricAvailable().then(available => {
-      const btn = document.getElementById('biometricBtn');
-      if(!btn) return;
-      const stored = localStorage.getItem('gsb_biometric');
-      if(available && stored) {
-        btn.style.display='flex';
-        // Detecta Face ID vs Touch ID vs genérico
-        const ua = navigator.userAgent;
-        const isIOS = /iPhone|iPad/.test(ua);
-        const isMac = /Mac/.test(ua);
-        const icon  = document.getElementById('biometricIcon');
-        if(icon) icon.textContent = isIOS||isMac ? '🔒' : '🔒';
-        btn.querySelector('span:last-child') && (btn.childNodes[btn.childNodes.length-1].textContent = ' Entrar com Biometria');
-      }
-    });
   }
   document.getElementById('loginSenha').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 }
