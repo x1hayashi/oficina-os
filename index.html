@@ -279,6 +279,10 @@
         <div class="auth-label">Senha</div>
         <input class="auth-input" id="regSenha" placeholder="Crie uma senha" type="password">
       </div>
+      <div class="auth-field">
+        <div class="auth-label">Confirmar Senha</div>
+        <input class="auth-input" id="regSenhaConf" placeholder="Repita a senha" type="password">
+      </div>
       <button class="auth-btn" onclick="doRegistrar()">Registrar</button>
       <div class="auth-msg" id="regMsg"></div>
     </div>
@@ -644,9 +648,11 @@ async function doRegistrar(){
   const whats  = getPhoneRaw('regWhats');
   const filial = document.getElementById('regFilial').value;
   const senha  = document.getElementById('regSenha').value;
+  const senhaConf = document.getElementById('regSenhaConf').value;
   const msg    = document.getElementById('regMsg');
   msg.className='auth-msg';
   if(!nome || whats.length < 12 || !senha || !filial){msg.textContent='Preencha todos os campos';msg.className='auth-msg error';return;}
+  if(senha !== senhaConf){msg.textContent='As senhas não coincidem';msg.className='auth-msg error';return;}
   try{
     const res=await fetch(`${PROXY}/auth/registrar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome,whatsapp:whats,senha,filial})});
     const data=await res.json();
