@@ -369,6 +369,10 @@
 
 <!-- TAB ADMIN (hidden, shown only for admins) -->
 <div id="panelAdmin" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px;">
+    <div style="font-size:17px;font-weight:600;">👥 Gestão de Usuários</div>
+    <button onclick="switchMainTab('os')" style="background:none;border:1.5px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;">✕ Fechar</button>
+  </div>
   <div class="admin-list" id="adminList">
     <div class="state-box"><div class="state-icon">👥</div><div class="state-title">Carregando usuários...</div></div>
   </div>
@@ -730,14 +734,12 @@ function trocarFilial(){filialSigla='';filialId='';allOS=[];document.getElementB
 // ── MAIN TABS ──────────────────────────────────────────────
 function switchMainTab(tab){
   currentMainTab=tab;
-  ['os','pendentes'].forEach(t=>{
-    document.getElementById('mainTab'+t.charAt(0).toUpperCase()+t.slice(1))?.classList.toggle('active',t===tab);
-  });
   document.getElementById('mainTabOS').classList.toggle('active',tab==='os');
   document.getElementById('mainTabPend').classList.toggle('active',tab==='pendentes');
-  document.getElementById('panelOS').style.display=tab==='os'?'':'none';
-  document.getElementById('panelPendentes').style.display=tab==='pendentes'?'':'none';
-  if(tab==='pendentes')renderPendentes();
+  document.getElementById('panelOS').style.display       = tab==='os'        ? '' : 'none';
+  document.getElementById('panelPendentes').style.display= tab==='pendentes' ? '' : 'none';
+  document.getElementById('panelAdmin').style.display    = tab==='admin'     ? '' : 'none';
+  if(tab==='pendentes') renderPendentes();
 }
 
 // ── API ────────────────────────────────────────────────────
@@ -1232,13 +1234,7 @@ async function openAdmin(){
           </div>
         </div>`).join('');
     }
-    switchMainTab('admin_internal');
-    document.getElementById('mainTabPend').parentElement.insertAdjacentHTML('beforeend',
-      document.getElementById('mainTabAdmin')?'':'');
-    // Show admin panel
-    document.getElementById('panelOS').style.display='none';
-    document.getElementById('panelPendentes').style.display='none';
-    document.getElementById('panelAdmin').style.display='';
+    switchMainTab('admin');
   }catch(e){showToast('Erro: '+e.message,true);}
 }
 
