@@ -212,6 +212,14 @@
   /* TOAST */
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:500;z-index:500;transition:transform .3s;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2)}
   .toast.show{transform:translateX(-50%) translateY(0)}.toast.error{background:var(--red)}
+  /* PHONE MASK */
+  .phone-wrap{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s;background:var(--bg)}
+  .phone-wrap:focus-within{border-color:var(--accent)}
+  .phone-prefix{padding:12px 10px 12px 14px;font-size:15px;color:var(--text2);font-weight:500;background:var(--surface2);border-right:1.5px solid var(--border);flex-shrink:0}
+  .phone-input{border:none!important;border-radius:0!important;background:transparent!important;flex:1;padding:12px 14px 12px 10px;outline:none;font-size:15px}
+  /* BIOMETRIC */
+  .auth-btn-biometric{width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);font-family:var(--sans);font-size:14px;font-weight:500;color:var(--text2);cursor:pointer;margin-top:10px;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .auth-btn-biometric:hover{border-color:var(--accent);color:var(--accent)}
   ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 </style>
 </head>
@@ -231,13 +239,19 @@
     <div class="auth-panel active" id="panelLogin">
       <div class="auth-field">
         <div class="auth-label">WhatsApp</div>
-        <input class="auth-input" id="loginWhats" placeholder="55 DDD Número" type="tel">
+        <div class="phone-wrap">
+          <span class="phone-prefix">+55</span>
+          <input class="auth-input phone-input" id="loginWhats" placeholder="(00) 00000-0000" type="tel" inputmode="numeric" maxlength="15" oninput="maskPhone(this)">
+        </div>
       </div>
       <div class="auth-field">
         <div class="auth-label">Senha</div>
-        <input class="auth-input" id="loginSenha" placeholder="Sua senha" type="password">
+        <input class="auth-input" id="loginSenha" placeholder="Sua senha" type="password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="auth-btn" onclick="doLogin()">Entrar</button>
+      <button class="auth-btn-biometric" id="biometricBtn" onclick="doLoginBiometric()" style="display:none">
+        <span id="biometricIcon">🔒</span> Entrar com Face ID / Biometria
+      </button>
       <div class="auth-msg" id="loginMsg"></div>
     </div>
     <!-- REGISTRO -->
@@ -248,8 +262,10 @@
       </div>
       <div class="auth-field">
         <div class="auth-label">WhatsApp</div>
-        <input class="auth-input" id="regWhats" placeholder="5562999990000" type="tel">
-        <div class="auth-whats-hint">55 + DDD + número, sem espaços</div>
+        <div class="phone-wrap">
+          <span class="phone-prefix">+55</span>
+          <input class="auth-input phone-input" id="regWhats" placeholder="(00) 00000-0000" type="tel" inputmode="numeric" maxlength="15" oninput="maskPhone(this)">
+        </div>
       </div>
       <div class="auth-field">
         <div class="auth-label">Filial</div>
@@ -477,12 +493,85 @@ function authTab(tab){
   document.getElementById('panelRegistrar').classList.toggle('active',tab==='registrar');
 }
 
+// ── MÁSCARA DE TELEFONE ────────────────────────────────────
+function maskPhone(input){
+  // Remove tudo que não é número
+  let v = input.value.replace(/\D/g,'');
+  // Limita a 11 dígitos (DDD + 9 dígitos)
+  v = v.slice(0,11);
+  // Aplica máscara: (00) 00000-0000 ou (00) 0000-0000
+  if(v.length <= 2)        input.value = v.length ? '('+v : '';
+  else if(v.length <= 6)   input.value = '('+v.slice(0,2)+') '+v.slice(2);
+  else if(v.length <= 10)  input.value = '('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6);
+  else                     input.value = '('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
+}
+
+// Extrai apenas números do campo mascarado e adiciona 55 na frente
+function getPhoneRaw(id){
+  const digits = document.getElementById(id).value.replace(/\D/g,'');
+  return '55' + digits;
+}
+
+// ── WEBAUTHN (Face ID / Touch ID / Biometria) ──────────────
+function ab2str(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function str2ab(b64){ return Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); }
+
+async function checkBiometricAvailable(){
+  if(!window.PublicKeyCredential) return false;
+  return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+}
+
+async function registerBiometric(userId, userName){
+  try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const cred = await navigator.credentials.create({publicKey:{
+      challenge,
+      rp:{ name:'Oficina OS', id: location.hostname },
+      user:{ id: str2ab(btoa(userId)), name: userName, displayName: userName },
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{ authenticatorAttachment:'platform', userVerification:'required' },
+      timeout: 60000,
+    }});
+    // Salva credencial localmente
+    const stored = { id: cred.rawId ? ab2str(cred.rawId) : cred.id, userId };
+    localStorage.setItem('gsb_biometric', JSON.stringify(stored));
+    showToast('Biometria cadastrada com sucesso!');
+    document.getElementById('biometricBtn').style.display='flex';
+  }catch(e){
+    if(e.name!=='NotAllowedError') showToast('Erro ao cadastrar biometria', true);
+  }
+}
+
+async function doLoginBiometric(){
+  const stored = JSON.parse(localStorage.getItem('gsb_biometric')||'null');
+  if(!stored){ showToast('Biometria não cadastrada', true); return; }
+  try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    await navigator.credentials.get({publicKey:{
+      challenge,
+      allowCredentials:[{ type:'public-key', id: str2ab(stored.id), transports:['internal'] }],
+      userVerification:'required',
+      timeout:60000,
+    }});
+    // Verificação local bem-sucedida — faz login com token salvo
+    const token = localStorage.getItem('gsb_token');
+    if(!token){ showToast('Sessão expirada, faça login com senha', true); return; }
+    sessToken = token;
+    sessUser  = JSON.parse(localStorage.getItem('gsb_user')||'null');
+    if(!sessUser){ showToast('Sessão expirada, faça login com senha', true); return; }
+    afterLogin();
+  }catch(e){
+    if(e.name==='NotAllowedError') showToast('Biometria cancelada', true);
+    else showToast('Erro na biometria', true);
+  }
+}
+
 async function doLogin(){
-  const whats=document.getElementById('loginWhats').value.trim().replace(/\D/g,'');
-  const senha=document.getElementById('loginSenha').value;
-  const msg=document.getElementById('loginMsg');
+  const whats = getPhoneRaw('loginWhats');
+  const senha  = document.getElementById('loginSenha').value;
+  const msg    = document.getElementById('loginMsg');
   msg.className='auth-msg';
-  if(!whats||!senha){msg.textContent='Preencha todos os campos';msg.className='auth-msg error';return;}
+  if(whats.length < 12 || !senha){msg.textContent='Preencha todos os campos';msg.className='auth-msg error';return;}
   try{
     const res=await fetch(`${PROXY}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({whatsapp:whats,senha})});
     const data=await res.json();
@@ -495,13 +584,13 @@ async function doLogin(){
 }
 
 async function doRegistrar(){
-  const nome=document.getElementById('regNome').value.trim();
-  const whats=document.getElementById('regWhats').value.trim().replace(/\D/g,'');
-  const filial=document.getElementById('regFilial').value;
-  const senha=document.getElementById('regSenha').value;
-  const msg=document.getElementById('regMsg');
+  const nome   = document.getElementById('regNome').value.trim();
+  const whats  = getPhoneRaw('regWhats');
+  const filial = document.getElementById('regFilial').value;
+  const senha  = document.getElementById('regSenha').value;
+  const msg    = document.getElementById('regMsg');
   msg.className='auth-msg';
-  if(!nome||!whats||!senha||!filial){msg.textContent='Preencha todos os campos';msg.className='auth-msg error';return;}
+  if(!nome || whats.length < 12 || !senha || !filial){msg.textContent='Preencha todos os campos';msg.className='auth-msg error';return;}
   try{
     const res=await fetch(`${PROXY}/auth/registrar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome,whatsapp:whats,senha,filial})});
     const data=await res.json();
@@ -524,7 +613,21 @@ function afterLogin(){
     badge.textContent=sessUser.nome.split(' ')[0];badge.style.display='';
     if(sessUser.admin) document.getElementById('adminBtn').style.display='';
   }
-  // Se usuário tem filial definida, pré-seleciona
+  // Verifica biometria disponível e mostra botão na tela de login
+  checkBiometricAvailable().then(available => {
+    const btn = document.getElementById('biometricBtn');
+    if(!btn) return;
+    const stored = localStorage.getItem('gsb_biometric');
+    if(available && stored) btn.style.display='flex';
+    // Se disponível mas não cadastrado ainda, oferece cadastro
+    if(available && !stored && sessUser){
+      setTimeout(()=>{
+        if(confirm('Deseja ativar o login por Face ID / Biometria para os próximos acessos?')){
+          registerBiometric(String(sessUser.id || sessUser.nome), sessUser.nome);
+        }
+      }, 500);
+    }
+  });
   if(sessUser&&sessUser.filial){
     selectFilial(sessUser.filial);
   } else {
@@ -1020,8 +1123,24 @@ function init(){
   // Check existing session
   if(sessToken&&sessUser){
     afterLogin();
+  } else {
+    // Mostra botão de biometria na tela de login se já foi cadastrado
+    checkBiometricAvailable().then(available => {
+      const btn = document.getElementById('biometricBtn');
+      if(!btn) return;
+      const stored = localStorage.getItem('gsb_biometric');
+      if(available && stored) {
+        btn.style.display='flex';
+        // Detecta Face ID vs Touch ID vs genérico
+        const ua = navigator.userAgent;
+        const isIOS = /iPhone|iPad/.test(ua);
+        const isMac = /Mac/.test(ua);
+        const icon  = document.getElementById('biometricIcon');
+        if(icon) icon.textContent = isIOS||isMac ? '🔒' : '🔒';
+        btn.querySelector('span:last-child') && (btn.childNodes[btn.childNodes.length-1].textContent = ' Entrar com Biometria');
+      }
+    });
   }
-  // Enter key on login
   document.getElementById('loginSenha').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 }
 init();
