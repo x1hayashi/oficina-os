@@ -384,18 +384,24 @@
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div class="sheet-title">⚙️ Configurações</div>
-    <div class="settings-section" style="margin-top:16px">
-      <div class="settings-section-title">WhatsApp por Filial (centralizado)</div>
-      <div style="font-size:13px;color:var(--text3);margin-bottom:14px">Ao salvar, afeta todos os usuários.</div>
+    <div class="settings-section" id="whatsSection" style="margin-top:16px">
+      <div class="settings-section-title">WhatsApp por Filial</div>
+      <div id="whatsSectionHint" style="font-size:13px;color:var(--text3);margin-bottom:14px">Número para envio das solicitações de OS.</div>
       <div class="form-field">
         <div class="form-label">HGO — Goiás</div>
-        <input class="form-input" id="cfgWhatsHGO" placeholder="5562999990000" type="tel">
+        <div class="phone-wrap">
+          <span class="phone-prefix">+55</span>
+          <input class="form-input phone-input" id="cfgWhatsHGO" placeholder="(00) 00000-0000" type="tel" inputmode="numeric" maxlength="15" oninput="maskPhone(this)">
+        </div>
       </div>
       <div class="form-field">
         <div class="form-label">HBA — Bahia</div>
-        <input class="form-input" id="cfgWhatsHBA" placeholder="5571999990000" type="tel">
+        <div class="phone-wrap">
+          <span class="phone-prefix">+55</span>
+          <input class="form-input phone-input" id="cfgWhatsHBA" placeholder="(00) 00000-0000" type="tel" inputmode="numeric" maxlength="15" oninput="maskPhone(this)">
+        </div>
       </div>
-      <button class="btn-primary" onclick="saveSettings()">Salvar para Todos</button>
+      <button class="btn-primary" id="whatsSaveBtn" onclick="saveSettings()" style="display:none">Salvar</button>
     </div>
     <div class="settings-section" id="biometricSection" style="margin-top:16px;display:none">
       <div class="settings-section-title">Biometria / Face ID</div>
@@ -981,13 +987,42 @@ function openModal(id){
 function closeModal(e){if(e.target===document.getElementById('modalOverlay'))document.getElementById('modalOverlay').classList.remove('open');}
 
 // ── SETTINGS ──────────────────────────────────────────────
+function rawToMask(raw){
+  // Converte "5562999990000" → "(62) 99999-0000" (remove o 55 do início)
+  let digits = (raw||'').replace(/\D/g,'');
+  if(digits.startsWith('55')) digits = digits.slice(2);
+  digits = digits.slice(0,11);
+  if(digits.length<=2)       return digits.length?'('+digits:'';
+  else if(digits.length<=6)  return '('+digits.slice(0,2)+') '+digits.slice(2);
+  else if(digits.length<=10) return '('+digits.slice(0,2)+') '+digits.slice(2,6)+'-'+digits.slice(6);
+  else                       return '('+digits.slice(0,2)+') '+digits.slice(2,7)+'-'+digits.slice(7);
+}
+
 async function openSettings(){
   try{
     const res=await fetch(`${PROXY}/config`,{headers:apiHeaders()});
     const cfg=await res.json();
-    document.getElementById('cfgWhatsHGO').value=cfg.whatsHGO||'';
-    document.getElementById('cfgWhatsHBA').value=cfg.whatsHBA||'';
+    // Aplica máscara ao exibir
+    document.getElementById('cfgWhatsHGO').value = rawToMask(cfg.whatsHGO);
+    document.getElementById('cfgWhatsHBA').value = rawToMask(cfg.whatsHBA);
   }catch{}
+
+  // Controla edição baseado em admin
+  const isAdmin = sessUser && sessUser.admin;
+  const hgoInput = document.getElementById('cfgWhatsHGO');
+  const hbaInput = document.getElementById('cfgWhatsHBA');
+  const saveBtn  = document.getElementById('whatsSaveBtn');
+  const hint     = document.getElementById('whatsSectionHint');
+
+  hgoInput.readOnly = !isAdmin;
+  hbaInput.readOnly = !isAdmin;
+  hgoInput.style.color = isAdmin ? '' : 'var(--text2)';
+  hbaInput.style.color = isAdmin ? '' : 'var(--text2)';
+  saveBtn.style.display = isAdmin ? '' : 'none';
+  if(hint) hint.textContent = isAdmin
+    ? 'Apenas admins podem alterar. Afeta todos os usuários.'
+    : 'Número para envio das solicitações de OS.';
+
   // Verifica biometria disponível
   const available = await checkBiometricAvailable();
   const section   = document.getElementById('biometricSection');
@@ -1019,9 +1054,15 @@ function removeBiometric(){
   showToast('Biometria removida deste dispositivo');
 }
 async function saveSettings(){
-  const body={whatsHGO:document.getElementById('cfgWhatsHGO').value.trim().replace(/\D/g,''),whatsHBA:document.getElementById('cfgWhatsHBA').value.trim().replace(/\D/g,'')};
-  try{await fetch(`${PROXY}/config`,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(body)});closeSheet('settingsOverlay');showToast('Salvo para todos!');}
-  catch{showToast('Erro ao salvar',true);}
+  // Extrai dígitos da máscara e adiciona 55
+  const hgo = '55' + document.getElementById('cfgWhatsHGO').value.replace(/\D/g,'');
+  const hba = '55' + document.getElementById('cfgWhatsHBA').value.replace(/\D/g,'');
+  const body = { whatsHGO: hgo, whatsHBA: hba };
+  try{
+    await fetch(`${PROXY}/config`,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(body)});
+    closeSheet('settingsOverlay');
+    showToast('Salvo para todos!');
+  }catch{ showToast('Erro ao salvar',true); }
 }
 async function getWhatsFilial(){
   try{const res=await fetch(`${PROXY}/config`,{headers:apiHeaders()});const cfg=await res.json();return filialSigla==='HBA'?(cfg.whatsHBA||''):(cfg.whatsHGO||'');}catch{return'';}
