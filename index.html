@@ -533,18 +533,25 @@ async function registerBiometric(userId, userName){
     const cred = await navigator.credentials.create({publicKey:{
       challenge,
       rp:{ name:'Oficina OS', id: location.hostname },
-      user:{ id: str2ab(btoa(userId)), name: userName, displayName: userName },
+      user:{ id: str2ab(btoa(userId.slice(0,10))), name: userName, displayName: userName },
       pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
-      authenticatorSelection:{ authenticatorAttachment:'platform', userVerification:'required' },
+      authenticatorSelection:{
+        authenticatorAttachment:'platform',
+        userVerification:'required',
+        residentKey:'preferred',
+      },
       timeout: 60000,
     }});
-    // Salva credencial localmente
-    const stored = { id: cred.rawId ? ab2str(cred.rawId) : cred.id, userId };
-    localStorage.setItem('gsb_biometric', JSON.stringify(stored));
-    showToast('Biometria cadastrada com sucesso!');
+    // Salva o ID da credencial — no iPhone é o rawId da Passkey
+    const credId = cred.rawId ? ab2str(cred.rawId) : cred.id;
+    localStorage.setItem('gsb_biometric', JSON.stringify({ id: credId, userId }));
+    showToast('✅ Biometria ativada com sucesso!');
     document.getElementById('biometricBtn').style.display='flex';
+    return true;
   }catch(e){
-    if(e.name!=='NotAllowedError') showToast('Erro ao cadastrar biometria', true);
+    if(e.name==='NotAllowedError') showToast('Cadastro cancelado', true);
+    else { console.error(e); showToast('Erro: '+e.message, true); }
+    return false;
   }
 }
 
@@ -555,20 +562,32 @@ async function doLoginBiometric(){
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     await navigator.credentials.get({publicKey:{
       challenge,
-      allowCredentials:[{ type:'public-key', id: str2ab(stored.id), transports:['internal'] }],
+      allowCredentials:[{ type:'public-key', id: str2ab(stored.id), transports:['internal','hybrid'] }],
       userVerification:'required',
       timeout:60000,
     }});
-    // Verificação local bem-sucedida — faz login com token salvo
+    // Biometria verificada — valida token no servidor
     const token = localStorage.getItem('gsb_token');
-    if(!token){ showToast('Sessão expirada, faça login com senha', true); return; }
+    const user  = JSON.parse(localStorage.getItem('gsb_user')||'null');
+    if(!token || !user){
+      showToast('Sessão expirada. Faça login com senha uma vez.', true);
+      return;
+    }
+    // Testa se o token ainda é válido
+    const check = await fetch(`${PROXY}/config`, {
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }
+    });
+    if(!check.ok){
+      showToast('Sessão expirada. Faça login com senha uma vez.', true);
+      return;
+    }
+    // Token válido — entra direto
     sessToken = token;
-    sessUser  = JSON.parse(localStorage.getItem('gsb_user')||'null');
-    if(!sessUser){ showToast('Sessão expirada, faça login com senha', true); return; }
+    sessUser  = user;
     afterLogin();
   }catch(e){
     if(e.name==='NotAllowedError') showToast('Biometria cancelada', true);
-    else showToast('Erro na biometria', true);
+    else { console.error(e); showToast('Erro na biometria: '+e.message, true); }
   }
 }
 
