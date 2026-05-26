@@ -885,9 +885,13 @@ function populateExtraFilters(){
   const solicSel = document.getElementById('filterSolicitante');
   if(!execSel||!solicSel) return;
 
-  const makeOptions = (ids, currentVal) =>
-    '<option value="">Todos</option>' +
-    ids.map(id=>`<option value="${id}" ${currentVal===String(id)?'selected':''}>${fname(id)}</option>`).join('');
+  const makeOptions = (ids, currentVal) => {
+    const sorted = ids
+      .map(id => ({ id, nome: fname(id) }))
+      .sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    return '<option value="">Todos</option>' +
+      sorted.map(({id,nome})=>`<option value="${id}" ${currentVal===String(id)?'selected':''}>${nome}</option>`).join('');
+  };
 
   execSel.innerHTML  = makeOptions(execIds,  filterExecId);
   solicSel.innerHTML = makeOptions(solicIds, filterSolicId);
