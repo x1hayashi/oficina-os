@@ -559,7 +559,10 @@ function maskPhone(input){
 
 // Extrai apenas números do campo mascarado e adiciona 55 na frente
 function getPhoneRaw(id){
-  const digits = document.getElementById(id).value.replace(/\D/g,'');
+  const val = document.getElementById(id).value || '';
+  const digits = val.replace(/\D/g,'');
+  // Se já começa com 55 e tem 13 dígitos, não duplica o 55
+  if(digits.startsWith('55') && digits.length >= 12) return digits;
   return '55' + digits;
 }
 
@@ -672,7 +675,8 @@ async function doLogin(){
   const senha  = document.getElementById('loginSenha').value;
   const msg    = document.getElementById('loginMsg');
   msg.className='auth-msg';
-  if(whats.length < 12 || !senha){msg.textContent='Preencha todos os campos';msg.className='auth-msg error';return;}
+  if(!senha){msg.textContent='Preencha a senha';msg.className='auth-msg error';return;}
+  if(whats.length < 12){msg.textContent='WhatsApp inválido — digite o DDD + número';msg.className='auth-msg error';return;}
   try{
     const res=await fetch(`${PROXY}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({whatsapp:whats,senha})});
     const data=await res.json();
