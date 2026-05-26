@@ -68,6 +68,14 @@
   .filters::-webkit-scrollbar{display:none}
   .filter-chip{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);color:var(--text2);padding:7px 16px;border-radius:20px;font-size:14px;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap}
   .filter-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .extra-filters{padding:0 20px 4px}
+  .extra-filter-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+  .extra-filter-item{}
+  .extra-filter-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+  .extra-filter-select{width:100%;background:var(--surface);border:1.5px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-family:var(--sans);font-size:13px;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
+  .extra-filter-select:focus{border-color:var(--accent)}
+  .clear-filter-btn{background:none;border:1.5px solid var(--border);color:var(--text3);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+  .clear-filter-btn:hover{border-color:var(--red);color:var(--red)}
   .section-label{padding:0 20px 6px;font-size:13px;font-weight:500;color:var(--text3);display:flex;align-items:center;justify-content:space-between}
   .filial-badge{display:inline-block;padding:4px 12px;background:var(--accent-light);color:var(--accent);border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;margin-left:6px}
   /* ── OS CARDS ── */
@@ -342,12 +350,34 @@
     <div class="stat-card total"><div class="stat-num" id="statTotal">–</div><div class="stat-label">Total</div></div>
   </div>
   <div class="filters">
-    <div class="filter-chip active" onclick="setFilter('todos',this)">Todas</div>
+    <div class="filter-chip" onclick="setFilter('todos',this)">Todas</div>
     <div class="filter-chip" onclick="setFilter('urgente',this)">🔴 Urgente</div>
-    <div class="filter-chip" onclick="setFilter('aberta',this)">Em andamento</div>
+    <div class="filter-chip active" onclick="setFilter('aberta',this)">Em andamento</div>
     <div class="filter-chip" onclick="setFilter('preventiva',this)">Preventiva</div>
     <div class="filter-chip" onclick="setFilter('concluida',this)">Concluída</div>
   </div>
+
+  <!-- FILTROS ADICIONAIS -->
+  <div class="extra-filters" id="extraFilters">
+    <div class="extra-filter-row">
+      <div class="extra-filter-item">
+        <div class="extra-filter-label">Executante</div>
+        <select class="extra-filter-select" id="filterExecutante" onchange="renderList()">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div class="extra-filter-item">
+        <div class="extra-filter-label">Solicitante</div>
+        <select class="extra-filter-select" id="filterSolicitante" onchange="renderList()">
+          <option value="">Todos</option>
+        </select>
+      </div>
+    </div>
+    <div style="padding:0 0 8px;">
+      <button class="clear-filter-btn" id="clearFiltersBtn" onclick="clearExtraFilters()" style="display:none">✕ Limpar filtros</button>
+    </div>
+  </div>
+
   <div class="section-label">
     <span id="sectionCount">–</span>
     <span id="lastUpdate"></span>
@@ -457,14 +487,15 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const PROXY = "https://gsb-proxy.onrender.com";
+const PROXY = "https://gsb-proxy-hayashi.fly.dev";
 
 // ── SESSION ────────────────────────────────────────────────
 let sessToken = localStorage.getItem('gsb_token') || '';
 let sessUser  = JSON.parse(localStorage.getItem('gsb_user') || 'null');
 
 // ── STATE ──────────────────────────────────────────────────
-let allOS=[], currentFilter='todos', currentMainTab='os';
+let allOS=[], currentFilter='aberta', currentMainTab='os';
+let filterExecId='', filterSolicId='';
 let mapFunc={}, mapSetor={}, mapEquip={}, mapEquipNum={};
 let mapProdBase={}, mapVariedade={}, mapProdFull={}, mapFilial={};
 let osProdCache={}, osItemsCache={}, allOSProd=[], allOSItems=[];
@@ -806,7 +837,7 @@ async function loadAll(){
     osProdCache={};osItemsCache={};
     for(const p of allOSProd){const oid=String(p.idOrdemServico);if(osIds.has(oid)){if(!osProdCache[oid])osProdCache[oid]=[];osProdCache[oid].push(p);}}
     for(const it of allOSItems){const oid=String(it.idOrdemServico);if(osIds.has(oid)){if(!osItemsCache[oid])osItemsCache[oid]=[];osItemsCache[oid].push(it);}}
-    updateStats();renderList();
+    updateStats();renderList();populateExtraFilters();
     document.getElementById('lastUpdate').textContent='Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     showToast(`${allOS.length} OS carregadas`);
     loadPendentes();
@@ -823,12 +854,57 @@ function updateStats(){
   document.getElementById('statTotal').textContent  =allOS.length;
 }
 function setFilter(f,el){currentFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderList();}
+
 function filterOS(){
-  if(currentFilter==='urgente')  return allOS.filter(o=>o.idUrgencia==1&&o.osConcluida==='N');
-  if(currentFilter==='aberta')   return allOS.filter(o=>o.osConcluida==='N');
-  if(currentFilter==='preventiva')return allOS.filter(o=>o.manutencao==='P'||o.tipo==='P');
-  if(currentFilter==='concluida')return allOS.filter(o=>o.osConcluida==='S');
-  return allOS;
+  let list = allOS;
+  if(currentFilter==='urgente')   list = list.filter(o=>o.idUrgencia==1&&o.osConcluida==='N');
+  else if(currentFilter==='aberta')    list = list.filter(o=>o.osConcluida==='N');
+  else if(currentFilter==='preventiva')list = list.filter(o=>o.manutencao==='P'||o.tipo==='P');
+  else if(currentFilter==='concluida') list = list.filter(o=>o.osConcluida==='S');
+  // Extra filters
+  filterExecId  = document.getElementById('filterExecutante')?.value  || '';
+  filterSolicId = document.getElementById('filterSolicitante')?.value || '';
+  if(filterExecId)  list = list.filter(o=>String(o.idExecutante)  === filterExecId);
+  if(filterSolicId) list = list.filter(o=>String(o.idSolicitante) === filterSolicId);
+  // Mostra botão limpar se há filtro extra ativo
+  const clearBtn = document.getElementById('clearFiltersBtn');
+  if(clearBtn) clearBtn.style.display = (filterExecId||filterSolicId) ? '' : 'none';
+  return list;
+}
+
+function populateExtraFilters(){
+  // Pega IDs únicos de executantes e solicitantes das OS carregadas
+  const execIds  = [...new Set(allOS.map(o=>o.idExecutante).filter(Boolean))];
+  const solicIds = [...new Set(allOS.map(o=>o.idSolicitante).filter(Boolean))];
+
+  const execSel  = document.getElementById('filterExecutante');
+  const solicSel = document.getElementById('filterSolicitante');
+  if(!execSel||!solicSel) return;
+
+  const makeOptions = (ids, currentVal) =>
+    '<option value="">Todos</option>' +
+    ids.map(id=>`<option value="${id}" ${currentVal===String(id)?'selected':''}>${fname(id)}</option>`).join('');
+
+  execSel.innerHTML  = makeOptions(execIds,  filterExecId);
+  solicSel.innerHTML = makeOptions(solicIds, filterSolicId);
+
+  // Pré-seleciona solicitante pelo usuário logado
+  if(!filterSolicId && sessUser){
+    // Tenta achar o idFuncionario pelo nome do usuário logado
+    const matchId = Object.entries(mapFunc).find(([id,nome])=>nome===sessUser.nome)?.[0];
+    if(matchId && solicIds.includes(Number(matchId)||matchId)){
+      solicSel.value = matchId;
+      filterSolicId  = matchId;
+    }
+  }
+}
+
+function clearExtraFilters(){
+  filterExecId=''; filterSolicId='';
+  document.getElementById('filterExecutante').value='';
+  document.getElementById('filterSolicitante').value='';
+  document.getElementById('clearFiltersBtn').style.display='none';
+  renderList();
 }
 
 function renderList(){
