@@ -852,25 +852,31 @@ async function loadAll(){
 }
 
 // ── STATS / FILTER / RENDER ────────────────────────────────
+
+// OS é considerada CONCLUÍDA se algum item tiver dataFim preenchida
+function isConcluida(os){
+  const itens = osItemsCache[String(os.idOrdemServico)] || [];
+  return itens.some(it => it.dataFim || it.horaFim);
+}
+
 function updateStats(){
-  document.getElementById('statUrgente').textContent=allOS.filter(o=>o.idUrgencia==1&&o.osConcluida==='N').length;
-  document.getElementById('statAberta').textContent =allOS.filter(o=>o.osConcluida==='N').length;
+  document.getElementById('statUrgente').textContent=allOS.filter(o=>o.idUrgencia==1&&!isConcluida(o)).length;
+  document.getElementById('statAberta').textContent =allOS.filter(o=>!isConcluida(o)).length;
   document.getElementById('statTotal').textContent  =allOS.length;
 }
 function setFilter(f,el){currentFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderList();}
 
 function filterOS(){
   let list = allOS;
-  if(currentFilter==='urgente')   list = list.filter(o=>o.idUrgencia==1&&o.osConcluida==='N');
-  else if(currentFilter==='aberta')    list = list.filter(o=>o.osConcluida==='N');
+  if(currentFilter==='urgente')        list = list.filter(o=>o.idUrgencia==1&&!isConcluida(o));
+  else if(currentFilter==='aberta')    list = list.filter(o=>!isConcluida(o));
   else if(currentFilter==='preventiva')list = list.filter(o=>o.manutencao==='P'||o.tipo==='P');
-  else if(currentFilter==='concluida') list = list.filter(o=>o.osConcluida==='S');
+  else if(currentFilter==='concluida') list = list.filter(o=>isConcluida(o));
   // Extra filters
   filterExecId  = document.getElementById('filterExecutante')?.value  || '';
   filterSolicId = document.getElementById('filterSolicitante')?.value || '';
   if(filterExecId)  list = list.filter(o=>String(o.idExecutante)  === filterExecId);
   if(filterSolicId) list = list.filter(o=>String(o.idSolicitante) === filterSolicId);
-  // Mostra botão limpar se há filtro extra ativo
   const clearBtn = document.getElementById('clearFiltersBtn');
   if(clearBtn) clearBtn.style.display = (filterExecId||filterSolicId) ? '' : 'none';
   return list;
@@ -939,7 +945,7 @@ function renderList(){
         </div>
         <div class="badges">
           <span class="badge ${uc(os.idUrgencia)}">${ut(os.idUrgencia)}</span>
-          <span class="badge st-${os.status||'P'}">${STATUS_MAP[os.status]||os.status||'–'}</span>
+          <span class="badge ${isConcluida(os)?'st-C':'st-'+(os.status||'P')}">${isConcluida(os)?'Concluída':STATUS_MAP[os.status]||os.status||'–'}</span>
         </div>
       </div>
       <div class="os-field"><span class="os-field-key">Solicitante</span><span class="os-field-val">${fname(os.idSolicitante).split(' ').slice(0,2).join(' ')}</span></div>
@@ -1017,7 +1023,7 @@ function openModal(id){
       <div class="modal-section">
         <div class="modal-section-title">Status & Classificação</div>
         <div class="detail-grid">
-          <div><div class="detail-key">Status</div><div class="detail-val ${os.status==='L'?'green':os.status==='A'?'yellow':''}">${STATUS_MAP[os.status]||os.status||'–'}</div></div>
+          <div><div class="detail-key">Status</div><div class="detail-val ${isConcluida(os)?'green':os.status==='A'?'yellow':''}">${isConcluida(os)?'Concluída':STATUS_MAP[os.status]||os.status||'–'}</div></div>
           <div><div class="detail-key">Urgência</div><div class="detail-val ${urgColor}">${ut(os.idUrgencia)}</div></div>
           <div><div class="detail-key">Tipo</div><div class="detail-val">${TIPO_MAP[os.tipo]||os.tipo||'–'}</div></div>
           <div><div class="detail-key">Manutenção</div><div class="detail-val">${MANUT_MAP[os.manutencao]||'–'}</div></div>
