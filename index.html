@@ -933,10 +933,14 @@ function renderList(){
     // Datas: SOLICITADO = dataInicio, PRAZO = dataEntrega
     const prazoDate=os.dataEntrega?new Date(String(os.dataEntrega).replace(' ','T').split('.')[0]):null;
     const hoje=new Date();
-    const prazoVencido=prazoDate&&prazoDate<hoje&&os.osConcluida==='N';
+    const prazoDate=os.dataEntrega?new Date(String(os.dataEntrega).replace(' ','T')):null;
+    const prazoVencido=prazoDate&&prazoDate<hoje&&!isConcluida(os);
     // INICIO e FIM dos itens (primeiro item com data)
     const primeiroItem=items.find(it=>it.horaInicio||it.dataInicio);
     const ultimoItem=[...items].reverse().find(it=>it.horaFim||it.dataFim);
+    // Serviço identificado e realizado (concatena todos os itens)
+    const servicoIdent = items.map(it=>it.servicoIdentificado).filter(Boolean).join(' / ');
+    const servicoReal  = items.map(it=>it.servicoRealizar).filter(Boolean).join(' / ');
     return`<div class="os-card ${uc(os.idUrgencia)}" onclick="openModal(${os.idOrdemServico})">
       <div class="os-header">
         <div>
@@ -945,17 +949,19 @@ function renderList(){
         </div>
         <div class="badges">
           <span class="badge ${uc(os.idUrgencia)}">${ut(os.idUrgencia)}</span>
-          <span class="badge ${isConcluida(os)?'st-C':'st-'+(os.status||'P')}">${isConcluida(os)?'Concluída':STATUS_MAP[os.status]||os.status||'–'}</span>
+          ${isConcluida(os)?`<span class="badge st-C">Concluída</span>`:''}
         </div>
       </div>
       <div class="os-field"><span class="os-field-key">Solicitante</span><span class="os-field-val">${fname(os.idSolicitante).split(' ').slice(0,2).join(' ')}</span></div>
       <div class="os-field"><span class="os-field-key">Setor</span><span class="os-field-val">${sname(os.idSetor)}</span></div>
-      ${os.observacao?`<div class="os-field"><span class="os-field-key">Obs</span><span class="os-field-val">${os.observacao}</span></div>`:''}
+      ${servicoIdent?`<div class="os-field"><span class="os-field-key">Identificado</span><span class="os-field-val">${servicoIdent}</span></div>`:''}
+      ${servicoReal?`<div class="os-field"><span class="os-field-key">Serviço</span><span class="os-field-val">${servicoReal}</span></div>`:''}
+      ${!servicoIdent&&!servicoReal&&os.observacao?`<div class="os-field"><span class="os-field-key">Obs</span><span class="os-field-val">${os.observacao}</span></div>`:''}
       <div class="os-dates">
         <div class="os-date-item"><div class="os-date-key">Solicitado</div><div class="os-date-val">${fmtDate(os.dataInicio)}</div></div>
         <div class="os-date-item"><div class="os-date-key">Prazo</div><div class="os-date-val${prazoVencido?' prazo-venc':''}">${fmtDate(os.dataEntrega)}</div></div>
         ${primeiroItem?`<div class="os-date-item"><div class="os-date-key">Início</div><div class="os-date-val">${fmtDateTime(primeiroItem.horaInicio||primeiroItem.dataInicio)}</div></div>`:'<div></div>'}
-        ${ultimoItem&&ultimoItem.horaFim?`<div class="os-date-item"><div class="os-date-key">Fim</div><div class="os-date-val">${fmtDateTime(ultimoItem.horaFim||ultimoItem.dataFim)}</div></div>`:'<div></div>'}
+        ${ultimoItem&&(ultimoItem.horaFim||ultimoItem.dataFim)?`<div class="os-date-item"><div class="os-date-key">Fim</div><div class="os-date-val">${fmtDateTime(ultimoItem.horaFim||ultimoItem.dataFim)}</div></div>`:'<div></div>'}
       </div>
       ${prods.length>0?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--accent);font-weight:500;">🔩 ${prods.length} produto${prods.length>1?'s':''} utilizado${prods.length>1?'s':''}</div>`:''}
     </div>`;
