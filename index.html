@@ -1139,11 +1139,31 @@ function renderPendentes(){
       <div class="pend-field"><span class="pend-key">Descrição</span><span class="pend-val">${s.descricao}</span></div>
       <div class="pend-field"><span class="pend-key">Prazo</span><span class="pend-val" style="color:${vencido?'var(--red)':'var(--text)'};font-weight:${vencido?'600':'400'}">${prazoFmt}${vencido?' ⚠️ Vencido':''}</span></div>
       <div class="pend-footer">
-        <span class="pend-date">Solicitado ${fmtDate(s.dataSolicit)}</span>
-        <button class="pend-del-btn" onclick="deletePendente(${s.id})">Remover</button>
+        <span class="pend-date">Solicitado ${fmtDate(s.data_solicit||s.dataSolicit)}</span>
+        <div style="display:flex;gap:6px;">
+          ${isPend?`<button class="pend-del-btn" style="color:var(--green);border-color:var(--green)" onclick="marcarLancada(${s.id})">✓ Lançada</button>`:''}
+          ${!isPend?`<button class="pend-del-btn" onclick="marcarPendente(${s.id})">↩ Pendente</button>`:''}
+          <button class="pend-del-btn" onclick="deletePendente(${s.id})">Remover</button>
+        </div>
       </div>
     </div>`;
   }).join('');
+}
+
+async function marcarLancada(id){
+  try{
+    await fetch(`${PROXY}/solicitacoes/${id}`,{method:'PUT',headers:apiHeaders(),body:JSON.stringify({status:'lançada'})});
+    showToast('Marcado como lançada!');
+    await loadPendentes();
+  }catch{showToast('Erro',true);}
+}
+
+async function marcarPendente(id){
+  try{
+    await fetch(`${PROXY}/solicitacoes/${id}`,{method:'PUT',headers:apiHeaders(),body:JSON.stringify({status:'pendente'})});
+    showToast('Marcado como pendente');
+    await loadPendentes();
+  }catch{showToast('Erro',true);}
 }
 
 async function deletePendente(id){
