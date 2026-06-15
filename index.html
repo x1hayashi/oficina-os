@@ -142,15 +142,15 @@
   .pend-card.lancada{border-left-color:var(--green);opacity:.7}
   .pend-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
   .pend-equip{font-family:var(--mono);font-size:16px;font-weight:500;color:var(--text);line-height:1}
-  .pend-equip-nome{font-size:12px;color:var(--text3);margin-top:3px}
+  .pend-equip-nome{font-size:13px;color:var(--text);margin-top:3px}
   .pend-badge{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;flex-shrink:0}
   .pend-badge.pendente{background:var(--yellow-light);color:var(--yellow)}.pend-badge.lancada{background:var(--green-light);color:var(--green)}
   .pend-field{display:flex;gap:8px;margin-bottom:5px;align-items:baseline}
-  .pend-key{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;flex-shrink:0;min-width:72px}
+  .pend-key{font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em;flex-shrink:0;min-width:72px}
   .pend-val{font-size:14px;color:var(--text);line-height:1.4}
   .pend-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
-  .pend-date{font-size:12px;color:var(--text3)}
-  .pend-del-btn{font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);padding:4px 10px;border-radius:6px;cursor:pointer}
+  .pend-date{font-size:12px;color:var(--text2)}
+  .pend-del-btn{font-size:12px;color:var(--text2);background:none;border:1px solid var(--border);padding:4px 10px;border-radius:6px;cursor:pointer}
   .pend-del-btn:hover{color:var(--red);border-color:var(--red)}
   /* ── ADMIN PANEL ── */
   .admin-list{padding:12px 20px;display:flex;flex-direction:column;gap:10px}
@@ -1070,18 +1070,24 @@ async function enviarSolic(){
   const equipNome = isConfirmed
     ? equipConfirmedName.textContent.trim()
     : equipRes.textContent.replace('👆 Toque para confirmar: ','').trim();
+
+  const hoje=new Date();
+  const dataHoje=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
+  const[py,pm,pd]=prazoISO.split('-');
+  // Gera número de referência de 4 dígitos
+  const refNum = String(Date.now()).slice(-4);
+
   try{
     await fetch(`${PROXY}/solicitacoes`,{method:'POST',headers:apiHeaders(),body:JSON.stringify({
       filial:filialSigla, solicitante:nome,
       idImobilizado, numImobilizado:equipNum,
       equipNome, descricao, prazo:prazoISO,
+      refNum,
       dataSolicit:new Date().toISOString()
     })});
   }catch(e){console.warn('Não salvou:',e.message);}
-  const hoje=new Date();
-  const dataHoje=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
-  const[py,pm,pd]=prazoISO.split('-');
-  const msg=`📋 *PENDENTE — Lançar OS no Sistema GSB*\nFilial: ${filialSigla||'–'}\n\n📅 *Data da solicitação:* ${dataHoje}\n⏰ *Prazo final:* ${pd}/${pm}/${py}\n👤 *Solicitante:* ${nome}\n🔧 *Equipamento:* Nº ${equipNum} — ${equipNome}\n\n📝 *O que precisa ser feito:*\n${descricao}\n\n_Favor lançar no sistema GSB._`;
+
+  const msg=`📋 *PENDENTE — Lançar OS no Sistema GSB*\nFilial: ${filialSigla||'–'} · Ref: *#${refNum}*\n\n📅 *Data da solicitação:* ${dataHoje}\n⏰ *Prazo final:* ${pd}/${pm}/${py}\n👤 *Solicitante:* ${nome}\n🔧 *Equipamento:* Nº ${equipNum} — ${equipNome}\n\n📝 *O que precisa ser feito:*\n${descricao}\n\n_Favor lançar no sistema GSB com a Ref #${refNum}._`;
   // window.location.href funciona no iOS/Android para abrir WhatsApp
   window.location.href=`https://wa.me/${whats}?text=${encodeURIComponent(msg)}`;
   closeSheet('solicOverlay');
@@ -1132,7 +1138,7 @@ function renderPendentes(){
     const vencido=isPend&&prazoDate&&prazoDate<new Date();
     return`<div class="pend-card ${isPend?'':'lancada'}">
       <div class="pend-header">
-        <div><div class="pend-equip">Nº ${s.num_imobilizado||s.numImobilizado||s.id_imobilizado||s.idImobilizado||'–'}</div><div class="pend-equip-nome">${s.equip_nome||s.equipNome||'–'}</div></div>
+        <div><div class="pend-equip">Nº ${s.num_imobilizado||s.numImobilizado||s.id_imobilizado||s.idImobilizado||'–'} — ${s.equip_nome||s.equipNome||'–'}</div>${s.refNum?`<div style="font-size:11px;color:var(--accent);font-weight:600;margin-top:2px;">Ref #${s.refNum}</div>`:''}</div>
         <span class="pend-badge ${isPend?'pendente':'lancada'}">${isPend?'⏳ Pendente':'✅ Lançada'}</span>
       </div>
       <div class="pend-field"><span class="pend-key">Solicitante</span><span class="pend-val">${s.solicitante}</span></div>
