@@ -815,7 +815,7 @@ function renderList(){
       <div class="os-header">
         <div>
           <div class="os-num">OS #${os.numeroOrs||os.idOrdemServico}</div>
-          <div class="os-num-label">${TIPO_MAP[os.tipo]||os.tipo||'–'} · ${MANUT_MAP[os.manutencao]||'–'}${equipNome?' · '+equipNome:''}</div>
+          <div class="os-num-label">${TIPO_MAP[os.tipo]||os.tipo||'–'} · ${MANUT_MAP[os.manutencao]||'–'}${equipNome?' · Nº '+(mapEquipNum[String(os.idImobilizado)]||os.idImobilizado||'')+' '+equipNome:''}</div>
         </div>
         <div class="badges">
           <span class="badge ${uc(os.idUrgencia)}">${ut(os.idUrgencia)}</span>
