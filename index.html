@@ -557,81 +557,6 @@ function getPhoneRaw(id){
   return '55' + digits;
 }
 
-// ── BIOMETRIA SIMPLIFICADA ─────────────────────────────────
-
-
-
-}
-
-// Registra biometria: salva token atual de forma protegida
-
-
-  // Salva dados para recuperação biométrica
-  const bioData = {
-    token,
-    user: JSON.parse(localStorage.getItem('gsb_user')||'null'),
-    userId,
-    registeredAt: Date.now(),
-  };
-  return true;
-}
-
-
-
-  try{
-    const challenge = crypto.getRandomValues(new Uint8Array(32));
-    await navigator.credentials.get({
-      publicKey:{
-        challenge,
-        userVerification: 'required',
-        timeout: 60000,
-        // Sem allowCredentials = browser mostra seletor de passkeys disponíveis
-        // Com rpId explícito para garantir o domínio correto
-        rpId: location.hostname,
-      }
-    });
-
-    // Se chegou aqui, usuário autenticou com sucesso
-    showToast('Verificando sessão...');
-    const token = stored.token;
-    const user  = stored.user;
-    if(!token || !user){
-      
-      showToast('Sessão inválida. Faça login com senha.', true);
-      return;
-    }
-    // Valida token no servidor
-    const check = await fetch(`${PROXY}/config`, {
-      headers:{ 'Authorization':'Bearer '+token }
-    });
-    if(!check.ok){
-      
-      showToast('Sessão expirada. Faça login com senha novamente.', true);
-      return;
-    }
-    sessToken = token;
-    sessUser  = user;
-    localStorage.setItem('gsb_token', token);
-    localStorage.setItem('gsb_user', JSON.stringify(user));
-    afterLogin();
-
-  }catch(e){
-    if(e.name === 'NotAllowedError'){
-      
-    } else if(e.name === 'InvalidStateError' || e.name === 'NotSupportedError'){
-      // Nenhuma passkey registrada — limpa e pede para reativar
-      
-      
-    } else {
-      showToast('Erro: '+e.message, true);
-    }
-  }
-}
-
-
-  catch { return new Uint8Array(32); }
-}
-
 async function doLogin(){
   const whats = getPhoneRaw('loginWhats');
   const senha  = document.getElementById('loginSenha').value;
@@ -682,8 +607,6 @@ function afterLogin(){
     badge.textContent=sessUser.nome.split(' ')[0];badge.style.display='';
     if(sessUser.admin) document.getElementById('adminBtn').style.display='';
   }
-  // Verifica biometria disponível e mostra botão na tela de login
-  
   if(sessUser&&sessUser.filial){
     selectFilial(sessUser.filial);
   } else {
@@ -879,10 +802,8 @@ function renderList(){
     const prods=osProdCache[String(os.idOrdemServico)]||[];
     const items=osItemsCache[String(os.idOrdemServico)]||[];
     const equipNome=os.idImobilizado?ename(os.idImobilizado):'';
-    // Datas: SOLICITADO = dataInicio, PRAZO = dataEntrega
-    const prazoDate=os.dataEntrega?new Date(String(os.dataEntrega).replace(' ','T').split('.')[0]):null;
     const hoje=new Date();
-    const prazoDate=os.dataEntrega?new Date(String(os.dataEntrega).replace(' ','T')):null;
+    const prazoDate=os.dataEntrega?new Date(String(os.dataEntrega).replace(' ','T').split('.')[0]):null;
     const prazoVencido=prazoDate&&prazoDate<hoje&&!isConcluida(os);
     // INICIO e FIM dos itens (primeiro item com data)
     const primeiroItem=items.find(it=>it.horaInicio||it.dataInicio);
@@ -1049,12 +970,10 @@ async function openSettings(){
   try{
     const res=await fetch(`${PROXY}/config`,{headers:apiHeaders()});
     const cfg=await res.json();
-    // Aplica máscara ao exibir
     document.getElementById('cfgWhatsHGO').value = rawToMask(cfg.whatsHGO);
     document.getElementById('cfgWhatsHBA').value = rawToMask(cfg.whatsHBA);
   }catch{}
 
-  // Controla edição baseado em admin
   const isAdmin = sessUser && sessUser.admin;
   const hgoInput = document.getElementById('cfgWhatsHGO');
   const hbaInput = document.getElementById('cfgWhatsHBA');
@@ -1070,12 +989,6 @@ async function openSettings(){
     ? 'Apenas admins podem alterar. Afeta todos os usuários.'
     : 'Número para envio das solicitações de OS.';
   document.getElementById('settingsOverlay').classList.add('open');
-}
-
-
-  const ok = await registerBiometric(String(sessUser.id || sessUser.nome), sessUser.nome);
-  if(ok){
-  }
 }
 
 
