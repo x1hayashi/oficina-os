@@ -255,6 +255,7 @@
         <input class="auth-input" id="loginSenha" placeholder="Sua senha" type="password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <button class="auth-btn" onclick="doLogin()">Entrar</button>
+      <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--text3);">Esqueceu a senha? Fale com o administrador.</div>
       <div class="auth-msg" id="loginMsg"></div>
     </div>
     <!-- REGISTRO -->
@@ -432,8 +433,25 @@
       </div>
       <button class="btn-primary" id="whatsSaveBtn" onclick="saveSettings()" style="display:none">Salvar</button>
     </div>
-      <div style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">Ative para entrar nos próximos acessos sem digitar a senha. Funciona por dispositivo.</div>
+
+    <div class="settings-section" style="margin-top:16px">
+      <div class="settings-section-title">Alterar Minha Senha</div>
+      <div class="form-field">
+        <div class="form-label">Senha Atual</div>
+        <input class="form-input" id="senhaAtual" type="password" placeholder="Digite sua senha atual">
+      </div>
+      <div class="form-field">
+        <div class="form-label">Nova Senha</div>
+        <input class="form-input" id="senhaNova" type="password" placeholder="Nova senha (mínimo 4 caracteres)">
+      </div>
+      <div class="form-field">
+        <div class="form-label">Confirmar Nova Senha</div>
+        <input class="form-input" id="senhaNovaConf" type="password" placeholder="Repita a nova senha">
+      </div>
+      <div class="auth-msg" id="senhaMsg" style="margin-bottom:8px"></div>
+      <button class="btn-primary" onclick="alterarSenha()">Alterar Senha</button>
     </div>
+
     <button class="btn-ghost" onclick="doLogout()">Sair da conta</button>
   </div>
 </div>
@@ -1003,6 +1021,30 @@ async function saveSettings(){
     showToast('Salvo para todos!');
   }catch{ showToast('Erro ao salvar',true); }
 }
+
+async function alterarSenha(){
+  const atual = document.getElementById('senhaAtual').value;
+  const nova  = document.getElementById('senhaNova').value;
+  const conf  = document.getElementById('senhaNovaConf').value;
+  const msg   = document.getElementById('senhaMsg');
+  msg.className='auth-msg';
+  if(!atual)          { msg.textContent='Informe a senha atual'; msg.className='auth-msg error'; return; }
+  if(nova.length < 4) { msg.textContent='Nova senha muito curta (mínimo 4 caracteres)'; msg.className='auth-msg error'; return; }
+  if(nova !== conf)   { msg.textContent='Senhas não coincidem'; msg.className='auth-msg error'; return; }
+  try{
+    const res  = await fetch(`${PROXY}/auth/alterar-senha`,{
+      method:'POST', headers:apiHeaders(),
+      body: JSON.stringify({senha_atual:atual, nova_senha:nova})
+    });
+    const data = await res.json();
+    if(!res.ok){ msg.textContent=data.error||'Erro'; msg.className='auth-msg error'; return; }
+    msg.textContent='✅ Senha alterada com sucesso!';
+    msg.className='auth-msg success';
+    document.getElementById('senhaAtual').value='';
+    document.getElementById('senhaNova').value='';
+    document.getElementById('senhaNovaConf').value='';
+  }catch(e){ msg.textContent='Erro de conexão'; msg.className='auth-msg error'; }
+}
 async function getWhatsFilial(){
   try{const res=await fetch(`${PROXY}/config`,{headers:apiHeaders()});const cfg=await res.json();return filialSigla==='HBA'?(cfg.whatsHBA||''):(cfg.whatsHGO||'');}catch{return'';}
 }
@@ -1193,7 +1235,8 @@ async function openAdmin(){
             ${u.status!=='aprovado'?`<button class="admin-action-btn aprovar" onclick="adminAcao(${u.id},'aprovado')">✓ Aprovar</button>`:''}
             ${u.status!=='bloqueado'?`<button class="admin-action-btn bloquear" onclick="adminAcao(${u.id},'bloqueado')">✕ Bloquear</button>`:''}
             ${!u.admin?`<button class="admin-action-btn" onclick="adminAcao(${u.id},'admin')">👑 Tornar Admin</button>`:''}
-            ${!u.admin?`<button class="admin-action-btn" style="color:var(--red);border-color:var(--red)" onclick="adminExcluir(${u.id},'${u.nome}')">🗑 Excluir</button>`:''}
+            <button class="admin-action-btn" style="color:var(--accent);border-color:var(--accent)" onclick="adminRedefinirSenha(${u.id},'${u.nome.replace(/'/g,"\\'")}')">🔑 Senha</button>
+            ${!u.admin?`<button class="admin-action-btn" style="color:var(--red);border-color:var(--red)" onclick="adminExcluir(${u.id},'${u.nome.replace(/'/g,"\\'")}')">🗑 Excluir</button>`:''}
           </div>
         </div>`).join('');
     }
@@ -1207,6 +1250,23 @@ async function adminAcao(id,acao){
     await fetch(`${PROXY}/admin/usuarios/${id}`,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(body)});
     showToast('Atualizado!');openAdmin();
   }catch{showToast('Erro',true);}
+}
+
+async function adminRedefinirSenha(id, nome){
+  const novaSenha = prompt(`Nova senha para ${nome}:`);
+  if(!novaSenha || novaSenha.length < 4){
+    if(novaSenha !== null) showToast('Senha muito curta (mínimo 4 caracteres)', true);
+    return;
+  }
+  const confirma = prompt(`Confirme a nova senha para ${nome}:`);
+  if(novaSenha !== confirma){ showToast('Senhas não coincidem', true); return; }
+  try{
+    await fetch(`${PROXY}/admin/usuarios/${id}`,{
+      method:'PUT', headers:apiHeaders(),
+      body:JSON.stringify({nova_senha: novaSenha})
+    });
+    showToast(`Senha de ${nome.split(' ')[0]} redefinida!`);
+  }catch{showToast('Erro ao redefinir senha',true);}
 }
 
 async function adminExcluir(id, nome){
