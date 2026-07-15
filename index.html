@@ -852,8 +852,50 @@ function renderList(){
         ${ultimoItem&&(ultimoItem.horaFim||ultimoItem.dataFim)?`<div class="os-date-item"><div class="os-date-key">Fim</div><div class="os-date-val">${fmtDateTime(ultimoItem.horaFim||ultimoItem.dataFim)}</div></div>`:'<div></div>'}
       </div>
       ${prods.length>0?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--accent);font-weight:500;">🔩 ${prods.length} produto${prods.length>1?'s':''} utilizado${prods.length>1?'s':''}</div>`:''}
+      ${!isConcluida(os)?`
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <button onclick="event.stopPropagation();avisarConclusao(${os.idOrdemServico})"
+          style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--green);color:#fff;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          ✓ Avisar Conclusão via WhatsApp
+        </button>
+      </div>`:''}
     </div>`;
   }).join('');
+}
+
+// ── AVISO DE CONCLUSÃO ────────────────────────────────────
+async function avisarConclusao(idOS){
+  const os = allOS.find(o=>o.idOrdemServico==idOS);
+  if(!os) return;
+  const whats = await getWhatsFilial();
+  if(!whats||whats.length<10){ showToast('Configure o WhatsApp da filial em ⚙️', true); return; }
+
+  const items    = osItemsCache[String(idOS)]||[];
+  const equipNum = mapEquipNum[String(os.idImobilizado)]||'';
+  const equipNome= ename(os.idImobilizado);
+  const solicit  = fname(os.idSolicitante);
+  const executante = fname(os.idExecutante);
+  const setor    = sname(os.idSetor);
+  const hoje     = new Date();
+  const dataHoje = `${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
+
+  // Serviço realizado dos itens
+  const servicoReal = items.map(it=>it.servicoFeito||it.servicoRealizar).filter(Boolean).join('\n');
+
+  const msg =
+`✅ *OS CONCLUÍDA — #${os.numeroOrs||os.idOrdemServico}*
+Filial: ${filialSigla||'–'}
+
+📅 *Data de conclusão:* ${dataHoje}
+🔧 *Equipamento:* Nº ${equipNum} — ${equipNome}
+👤 *Solicitante:* ${solicit}
+👷 *Executante:* ${executante}
+🏢 *Setor:* ${setor}
+${servicoReal?`\n📝 *Serviço realizado:*\n${servicoReal}`:''}
+
+_OS finalizada e disponível no sistema GSB._`;
+
+  window.location.href=`https://wa.me/${whats}?text=${encodeURIComponent(msg)}`;
 }
 
 // ── MODAL ──────────────────────────────────────────────────
