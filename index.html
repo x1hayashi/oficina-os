@@ -852,13 +852,6 @@ function renderList(){
         ${ultimoItem&&(ultimoItem.horaFim||ultimoItem.dataFim)?`<div class="os-date-item"><div class="os-date-key">Fim</div><div class="os-date-val">${fmtDateTime(ultimoItem.horaFim||ultimoItem.dataFim)}</div></div>`:'<div></div>'}
       </div>
       ${prods.length>0?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--accent);font-weight:500;">🔩 ${prods.length} produto${prods.length>1?'s':''} utilizado${prods.length>1?'s':''}</div>`:''}
-      ${!isConcluida(os)?`
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
-        <button onclick="event.stopPropagation();avisarConclusao(${os.idOrdemServico})"
-          style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--green);color:#fff;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
-          ✓ Avisar Conclusão via WhatsApp
-        </button>
-      </div>`:''}
     </div>`;
   }).join('');
 }
@@ -1009,7 +1002,16 @@ function openModal(id){
         <div class="modal-section-title">Materiais Utilizados</div>
         ${prodsHTML}
       </div>
-    </div>`;
+    </div>
+
+    ${!isConcluida(os)?`
+    <div style="margin-top:16px;padding-top:16px;border-top:1.5px solid var(--border);">
+      <button onclick="avisarConclusao(${os.idOrdemServico})"
+        style="width:100%;padding:14px;border-radius:10px;border:none;background:var(--green);color:#fff;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        ✓ Avisar Conclusão via WhatsApp
+      </button>
+    </div>`:''}
+  `;
   document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal(e){if(e.target===document.getElementById('modalOverlay'))document.getElementById('modalOverlay').classList.remove('open');}
