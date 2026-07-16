@@ -1328,14 +1328,26 @@ async function deletePendente(id){
 async function openAdmin(){
   try{
     const res=await fetch(`${PROXY}/admin/usuarios`,{headers:apiHeaders()});
-    const users=await res.json();
+    const allUsers=await res.json();
     const container=document.getElementById('adminList');
-    if(!users.length){container.innerHTML=`<div class="state-box"><div class="state-icon">👥</div><div class="state-title">Nenhum usuário</div></div>`;
+
+    // Filtra pela filial atual, mas mantém admins de qualquer filial visíveis
+    const users = filialSigla
+      ? allUsers.filter(u => u.filial === filialSigla || u.admin)
+      : allUsers;
+
+    if(!users.length){
+      container.innerHTML=`<div class="state-box"><div class="state-icon">👥</div><div class="state-title">Nenhum usuário</div></div>`;
     }else{
-      container.innerHTML=users.map(u=>`
+      container.innerHTML=`
+        <div style="font-size:12px;color:var(--text3);padding:0 0 12px;font-weight:500;">
+          Mostrando usuários da filial <strong style="color:var(--accent)">${filialSigla||'Todas'}</strong>
+          ${filialSigla?` · <span style="cursor:pointer;text-decoration:underline" onclick="openAdminTodos()">Ver todos</span>`:''}
+        </div>
+      `+users.map(u=>`
         <div class="admin-user-card">
           <div class="admin-user-name">${u.nome}${u.admin?' 👑':''}</div>
-          <div class="admin-user-info">📱 ${u.whatsapp} · ${u.filial||'Sem filial'} · <strong style="color:${u.status==='aprovado'?'var(--green)':u.status==='bloqueado'?'var(--red)':'var(--yellow)'}">${u.status}</strong></div>
+          <div class="admin-user-info">📱 ${u.whatsapp} · <strong>${u.filial||'Sem filial'}</strong> · <strong style="color:${u.status==='aprovado'?'var(--green)':u.status==='bloqueado'?'var(--red)':'var(--yellow)'}">${u.status}</strong></div>
           <div class="admin-user-actions">
             ${u.status!=='aprovado'?`<button class="admin-action-btn aprovar" onclick="adminAcao(${u.id},'aprovado')">✓ Aprovar</button>`:''}
             ${u.status!=='bloqueado'?`<button class="admin-action-btn bloquear" onclick="adminAcao(${u.id},'bloqueado')">✕ Bloquear</button>`:''}
@@ -1346,6 +1358,32 @@ async function openAdmin(){
         </div>`).join('');
     }
     switchMainTab('admin');
+  }catch(e){showToast('Erro: '+e.message,true);}
+}
+
+async function openAdminTodos(){
+  // Temporariamente mostra todos sem filtro de filial
+  try{
+    const res=await fetch(`${PROXY}/admin/usuarios`,{headers:apiHeaders()});
+    const users=await res.json();
+    const container=document.getElementById('adminList');
+    container.innerHTML=`
+      <div style="font-size:12px;color:var(--text3);padding:0 0 12px;font-weight:500;">
+        Mostrando <strong>todos os usuários</strong>
+        · <span style="cursor:pointer;text-decoration:underline" onclick="openAdmin()">Filtrar por ${filialSigla}</span>
+      </div>
+    `+users.map(u=>`
+      <div class="admin-user-card">
+        <div class="admin-user-name">${u.nome}${u.admin?' 👑':''}</div>
+        <div class="admin-user-info">📱 ${u.whatsapp} · <strong>${u.filial||'Sem filial'}</strong> · <strong style="color:${u.status==='aprovado'?'var(--green)':u.status==='bloqueado'?'var(--red)':'var(--yellow)'}">${u.status}</strong></div>
+        <div class="admin-user-actions">
+          ${u.status!=='aprovado'?`<button class="admin-action-btn aprovar" onclick="adminAcao(${u.id},'aprovado')">✓ Aprovar</button>`:''}
+          ${u.status!=='bloqueado'?`<button class="admin-action-btn bloquear" onclick="adminAcao(${u.id},'bloqueado')">✕ Bloquear</button>`:''}
+          ${!u.admin?`<button class="admin-action-btn" onclick="adminAcao(${u.id},'admin')">👑 Tornar Admin</button>`:''}
+          <button class="admin-action-btn" style="color:var(--accent);border-color:var(--accent)" onclick="adminRedefinirSenha(${u.id},'${u.nome.replace(/'/g,"\\'")}')">🔑 Senha</button>
+          ${!u.admin?`<button class="admin-action-btn" style="color:var(--red);border-color:var(--red)" onclick="adminExcluir(${u.id},'${u.nome.replace(/'/g,"\\'")}')">🗑 Excluir</button>`:''}
+        </div>
+      </div>`).join('');
   }catch(e){showToast('Erro: '+e.message,true);}
 }
 
