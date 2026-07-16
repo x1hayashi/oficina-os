@@ -435,6 +435,12 @@
     </div>
 
     <div class="settings-section" style="margin-top:16px">
+      <div class="settings-section-title">Cache de Cadastros</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5">Funcionários, equipamentos e produtos ficam salvos por 24h para carregar mais rápido. Force a atualização se houve novos cadastros no GSB.</div>
+      <button class="btn-ghost" onclick="limparCacheProdutos()" style="width:100%">🔄 Forçar Atualização de Cadastros</button>
+    </div>
+
+    <div class="settings-section" style="margin-top:16px">
       <div class="settings-section-title">Alterar Minha Senha</div>
       <div class="form-field">
         <div class="form-label">Senha Atual</div>
@@ -507,6 +513,43 @@ let allOS=[], currentFilter='aberta', currentMainTab='os';
 let filterExecId='', filterSolicId='';
 let mapFunc={}, mapSetor={}, mapEquip={}, mapEquipNum={};
 let mapProdBase={}, mapVariedade={}, mapProdFull={}, mapFilial={};
+// ── CACHE LOCAL DE CADASTROS (24h) ────────────────────────
+const PROD_CACHE_KEY  = 'gsb_prod_cache';
+const CAD_CACHE_KEY   = 'gsb_cad_cache';
+const CACHE_TTL       = 24 * 60 * 60 * 1000; // 24 horas
+
+function saveCache(key, data){
+  try{ localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data })); }
+  catch(e){ console.warn('Cache cheio:', e.message); }
+}
+
+function loadCache(key){
+  try{
+    const raw = localStorage.getItem(key);
+    if(!raw) return null;
+    const cache = JSON.parse(raw);
+    if(Date.now() - cache.savedAt > CACHE_TTL) return null;
+    return cache.data;
+  }catch{ return null; }
+}
+
+function saveProdCache(prodBase, prodVar, prodList){
+  saveCache(PROD_CACHE_KEY, { prodBase, prodVar, prodList });
+}
+function loadProdCache(){
+  return loadCache(PROD_CACHE_KEY);
+}
+
+function buildProdMaps(prodBase, prodVar, prodList){
+  mapProdBase  = Object.fromEntries(prodBase.map(p=>[String(p.idNomeProduto), p.nomeProduto]));
+  mapVariedade = Object.fromEntries(prodVar.map(v=>[String(v.idVariedade),   v.nomeVariedade]));
+  mapProdFull  = {};
+  for(const p of prodList){
+    const base = mapProdBase[String(p.idNomeProduto)]||'';
+    const var_ = p.idVariedade?(mapVariedade[String(p.idVariedade)]||''):'';
+    mapProdFull[String(p.idProduto)] = var_?`${base} · ${var_}`:base||`#${p.idProduto}`;
+  }
+}
 let osProdCache={}, osItemsCache={}, allOSProd=[], allOSItems=[];
 let allPendentes=[];
 let filialSigla='', filialId='';
@@ -697,22 +740,32 @@ async function loadAll(){
   document.getElementById('osList').innerHTML=`<div class="loading-box"><div class="loading-spinner"></div><div class="loading-label" id="loadingLabel">Carregando...</div></div>`;
   try{
     setLoadingLabel('Buscando cadastros...');
-    const[funcs,setores,equips,filiais]=await apiFetchSeq(['funcionarios','setores','imobilizados','filiais']);
-    setLoadingLabel('Buscando produtos...');
-    const[prodBase,prodVar,prodList]=await apiFetchSeq(['produtosnomes','produtosvariedades','produtos']);
+    const cadCache = loadCache(CAD_CACHE_KEY);
+    let funcs, setores, equips, filiais;
+    if(cadCache){
+      ({funcs, setores, equips, filiais} = cadCache);
+      setLoadingLabel('Cadastros carregados do cache...');
+    } else {
+      [funcs, setores, equips, filiais] = await apiFetchSeq(['funcionarios','setores','imobilizados','filiais']);
+      saveCache(CAD_CACHE_KEY, {funcs, setores, equips, filiais});
+    }
     mapFunc   =Object.fromEntries(funcs.map(f=>[f.idFuncionario,f.nome]));
     mapSetor  =Object.fromEntries(setores.map(s=>[s.idSetor,s.nomeSetor]));
     mapEquip  =Object.fromEntries(equips.map(e=>[e.idImobilizado,`${e.marca||''} ${e.modelo||''}`.trim()]));
     mapEquipNum=Object.fromEntries(equips.map(e=>[String(e.idImobilizado),String(e.numeroImobilizado||'')]));
     window._mapNumToId=Object.fromEntries(equips.map(e=>[String(e.numeroImobilizado||''),String(e.idImobilizado)]));
-    mapProdBase =Object.fromEntries(prodBase.map(p=>[String(p.idNomeProduto),p.nomeProduto]));
-    mapVariedade=Object.fromEntries(prodVar.map(v=>[String(v.idVariedade),v.nomeVariedade]));
-    mapFilial   =Object.fromEntries(filiais.map(f=>[String(f.idFilial),f.siglaFilial]));
-    mapProdFull={};
-    for(const p of prodList){
-      const base=mapProdBase[String(p.idNomeProduto)]||'';
-      const var_=p.idVariedade?(mapVariedade[String(p.idVariedade)]||''):'';
-      mapProdFull[String(p.idProduto)]=var_?`${base} · ${var_}`:base||`#${p.idProduto}`;
+    mapFilial =Object.fromEntries(filiais.map(f=>[String(f.idFilial),f.siglaFilial]));
+
+    // Produtos: usa cache local de 24h para não buscar toda vez
+    const prodCache = loadProdCache();
+    if(prodCache){
+      setLoadingLabel('Carregando produtos do cache...');
+      buildProdMaps(prodCache.prodBase, prodCache.prodVar, prodCache.prodList);
+    } else {
+      setLoadingLabel('Buscando produtos...');
+      const[prodBase,prodVar,prodList]=await apiFetchSeq(['produtosnomes','produtosvariedades','produtos']);
+      buildProdMaps(prodBase, prodVar, prodList);
+      saveProdCache(prodBase, prodVar, prodList);
     }
     const filialObj=filiais.find(f=>f.siglaFilial===filialSigla);
     filialId=filialObj?String(filialObj.idFilial):'';
@@ -1064,6 +1117,14 @@ async function saveSettings(){
     closeSheet('settingsOverlay');
     showToast('Salvo para todos!');
   }catch{ showToast('Erro ao salvar',true); }
+}
+
+function limparCacheProdutos(){
+  localStorage.removeItem(PROD_CACHE_KEY);
+  localStorage.removeItem(CAD_CACHE_KEY);
+  closeSheet('settingsOverlay');
+  showToast('Cache limpo! Recarregando...');
+  setTimeout(()=>loadAll(), 500);
 }
 
 async function alterarSenha(){
