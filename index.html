@@ -951,26 +951,91 @@ function renderList(){
   }).join('');
 }
 
-// ── HORA PICKER ────────────────────────────────────────────
-let horaSelec = null; // null = não selecionado
+// ── HORA PICKER (drum roller iOS style) ───────────────────
+let horaSelec = null;
 let horaH = 8, horaM = 0;
+const ITEM_H = 40; // altura de cada item px
+const HORAS = Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
+const MINS  = ['00','15','30','45'];
+
+function buildDrum(innerId, items, selectedIdx){
+  const inner = document.getElementById(innerId);
+  // Repete 3x para efeito infinito suave
+  inner.innerHTML = [...items,...items,...items]
+    .map(v=>`<div style="height:${ITEM_H}px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:22px;font-weight:500;color:var(--text);opacity:.4;transition:opacity .1s">${v}</div>`)
+    .join('');
+  setDrumIndex(innerId, selectedIdx + items.length, items.length, false);
+}
+
+function setDrumIndex(innerId, absIdx, total, animate){
+  const inner = document.getElementById(innerId);
+  if(!animate) inner.style.transition='none';
+  else inner.style.transition='transform .18s ease';
+  const offset = -(absIdx * ITEM_H) + (2 * ITEM_H); // centraliza no 3º item visível
+  inner.style.transform = `translateY(${offset}px)`;
+  // Destaca item central
+  [...inner.children].forEach((c,i)=>{
+    c.style.opacity = i===absIdx?'1':'0.35';
+    c.style.fontSize= i===absIdx?'24px':'20px';
+    c.style.fontWeight= i===absIdx?'700':'400';
+  });
+  if(!animate) setTimeout(()=>inner.style.transition='transform .18s ease',10);
+}
+
+function initDrum(drumId, innerId, items, initIdx){
+  buildDrum(innerId, items, initIdx);
+  const drum  = document.getElementById(drumId);
+  let startY=0, startIdx=initIdx+items.length, curIdx=startIdx;
+
+  function clamp(idx){ return Math.max(items.length, Math.min(idx, items.length*2-1)); }
+
+  drum.addEventListener('touchstart', e=>{startY=e.touches[0].clientY; e.preventDefault();},{passive:false});
+  drum.addEventListener('touchmove',  e=>{
+    const dy = startY - e.touches[0].clientY;
+    const delta = Math.round(dy / ITEM_H);
+    const newIdx = clamp(startIdx + delta);
+    if(newIdx !== curIdx){ curIdx=newIdx; setDrumIndex(innerId,curIdx,items.length,false); }
+    e.preventDefault();
+  },{passive:false});
+  drum.addEventListener('touchend', e=>{
+    startIdx=curIdx;
+    const realIdx = ((curIdx - items.length) % items.length + items.length) % items.length;
+    if(innerId==='drumHInner') horaH=parseInt(items[realIdx]);
+    else                        horaM=parseInt(items[realIdx]);
+  });
+
+  // Mouse drag (desktop)
+  let dragging=false;
+  drum.addEventListener('mousedown', e=>{dragging=true; startY=e.clientY;});
+  window.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    const dy = startY - e.clientY;
+    const delta = Math.round(dy / ITEM_H);
+    const newIdx = clamp(startIdx + delta);
+    if(newIdx!==curIdx){curIdx=newIdx; setDrumIndex(innerId,curIdx,items.length,false);}
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(!dragging) return; dragging=false; startIdx=curIdx;
+    const realIdx=((curIdx-items.length)%items.length+items.length)%items.length;
+    if(innerId==='drumHInner') horaH=parseInt(items[realIdx]);
+    else                        horaM=parseInt(items[realIdx]);
+  });
+}
 
 function toggleHoraPicker(){
   const wrap = document.getElementById('horaPickerWrap');
   const btn  = document.getElementById('horaPickerBtn');
   const open = wrap.style.display === 'none';
-  wrap.style.display = open ? '' : 'none';
-  btn.style.display  = open ? 'none' : '';
-}
-
-function ajustarHora(delta){
-  horaH = (horaH + delta + 24) % 24;
-  document.getElementById('horaVal').textContent = String(horaH).padStart(2,'0');
-}
-
-function ajustarMin(delta){
-  horaM = (horaM + delta + 60) % 60;
-  document.getElementById('minVal').textContent = String(horaM).padStart(2,'0');
+  if(open){
+    wrap.style.display='';
+    btn.style.display='none';
+    // Inicializa drums
+    initDrum('drumH','drumHInner', HORAS, horaH);
+    initDrum('drumM','drumMInner', MINS,  MINS.indexOf(String(horaM).padStart(2,'0'))===-1?0:MINS.indexOf(String(horaM).padStart(2,'0')));
+  } else {
+    wrap.style.display='none';
+    btn.style.display='';
+  }
 }
 
 function confirmarHora(){
@@ -984,16 +1049,13 @@ function confirmarHora(){
 }
 
 function limparHora(){
-  horaSelec = null;
-  horaH = 8; horaM = 0;
-  document.getElementById('horaDisplay').textContent = '';
-  document.getElementById('horaPickerBtn').textContent = '🕐 Selecionar horário (opcional)';
-  document.getElementById('horaPickerBtn').style.color = 'var(--text3)';
-  document.getElementById('horaPickerBtn').style.borderColor = 'var(--border)';
-  document.getElementById('horaVal').textContent = '08';
-  document.getElementById('minVal').textContent  = '00';
-  document.getElementById('horaPickerWrap').style.display = 'none';
-  document.getElementById('horaPickerBtn').style.display  = '';
+  horaSelec = null; horaH = 8; horaM = 0;
+  const disp = document.getElementById('horaDisplay');
+  const btn  = document.getElementById('horaPickerBtn');
+  const wrap = document.getElementById('horaPickerWrap');
+  if(disp) disp.textContent = '';
+  if(btn){ btn.textContent='🕐 Selecionar horário (opcional)'; btn.style.color='var(--text3)'; btn.style.borderColor='var(--border)'; btn.style.display=''; }
+  if(wrap) wrap.style.display='none';
 }
 async function avisarConclusao(idOS){
   const os = allOS.find(o=>o.idOrdemServico==idOS);
@@ -1268,9 +1330,8 @@ function confirmarEquip(){
 
 // ── SOLICITATION ──────────────────────────────────────────
 function openSolic(){
-  const hoje=new Date();
+  try{ limparHora(); } catch(e){}
   document.getElementById('sPrazo').value='';
-  limparHora();
   document.getElementById('sNome').value=sessUser?sessUser.nome:'';
   document.getElementById('sEquipNum').value='';
   document.getElementById('sDescricao').value='';
