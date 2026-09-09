@@ -355,7 +355,11 @@
 
   <!-- FILTROS ADICIONAIS -->
   <div class="extra-filters" id="extraFilters">
-    <div class="extra-filter-row">
+    <div class="extra-filter-row" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="extra-filter-item">
+        <div class="extra-filter-label">Nº OS</div>
+        <input class="extra-filter-select" id="filterNumOS" type="number" placeholder="Ex: 1990" oninput="renderList()" style="appearance:none;background-image:none">
+      </div>
       <div class="extra-filter-item">
         <div class="extra-filter-label">Executante</div>
         <select class="extra-filter-select" id="filterExecutante" onchange="renderList()">
@@ -486,6 +490,43 @@
     <div class="form-field">
       <div class="form-label">Prazo Final <span class="req">*</span></div>
       <input class="form-input" id="sPrazo" type="date">
+    </div>
+    <div class="form-field">
+      <div class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Horário preferencial <span style="color:var(--text3);font-weight:400">(opcional)</span></span>
+        <span id="horaDisplay" style="font-family:var(--mono);font-size:15px;color:var(--accent);font-weight:600"></span>
+      </div>
+      <div id="horaPickerWrap" style="display:none;background:var(--bg);border:1.5px solid var(--accent);border-radius:12px;padding:12px;margin-top:6px;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+          <!-- HORAS -->
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Hora</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <button onclick="ajustarHora(1)" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--accent);padding:2px 10px">▲</button>
+              <div id="horaVal" style="font-family:var(--mono);font-size:28px;font-weight:600;color:var(--text);min-width:48px;text-align:center">08</div>
+              <button onclick="ajustarHora(-1)" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--accent);padding:2px 10px">▼</button>
+            </div>
+          </div>
+          <div style="font-family:var(--mono);font-size:28px;font-weight:600;color:var(--text);margin-top:4px">:</div>
+          <!-- MINUTOS -->
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Min</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <button onclick="ajustarMin(15)" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--accent);padding:2px 10px">▲</button>
+              <div id="minVal" style="font-family:var(--mono);font-size:28px;font-weight:600;color:var(--text);min-width:48px;text-align:center">00</div>
+              <button onclick="ajustarMin(-15)" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--accent);padding:2px 10px">▼</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button onclick="confirmarHora()" style="flex:1;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer">Confirmar</button>
+          <button onclick="limparHora()" style="padding:10px 16px;border-radius:8px;border:1.5px solid var(--border);background:none;color:var(--text2);font-size:14px;cursor:pointer">Limpar</button>
+        </div>
+      </div>
+      <button id="horaPickerBtn" onclick="toggleHoraPicker()"
+        style="width:100%;margin-top:8px;padding:10px 14px;border-radius:10px;border:1.5px dashed var(--border);background:none;color:var(--text3);font-size:14px;cursor:pointer;text-align:left;">
+        🕐 Selecionar horário (opcional)
+      </button>
     </div>
     <button class="btn-whats" onclick="enviarSolic()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.092.537 4.06 1.479 5.779L0 24l6.418-1.684A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.007-1.371l-.36-.214-3.724.977.993-3.63-.234-.373A9.818 9.818 0 1112 21.818z"/></svg>
@@ -818,10 +859,12 @@ function filterOS(){
   // Extra filters
   filterExecId  = document.getElementById('filterExecutante')?.value  || '';
   filterSolicId = document.getElementById('filterSolicitante')?.value || '';
+  const filterNum = document.getElementById('filterNumOS')?.value.trim() || '';
+  if(filterNum)     list = list.filter(o=>String(o.numeroOrs||o.idOrdemServico).includes(filterNum));
   if(filterExecId)  list = list.filter(o=>String(o.idExecutante)  === filterExecId);
   if(filterSolicId) list = list.filter(o=>String(o.idSolicitante) === filterSolicId);
   const clearBtn = document.getElementById('clearFiltersBtn');
-  if(clearBtn) clearBtn.style.display = (filterExecId||filterSolicId) ? '' : 'none';
+  if(clearBtn) clearBtn.style.display = (filterExecId||filterSolicId||filterNum) ? '' : 'none';
   return list;
 }
 
@@ -860,6 +903,7 @@ function clearExtraFilters(){
   filterExecId=''; filterSolicId='';
   document.getElementById('filterExecutante').value='';
   document.getElementById('filterSolicitante').value='';
+  document.getElementById('filterNumOS').value='';
   document.getElementById('clearFiltersBtn').style.display='none';
   renderList();
 }
@@ -909,7 +953,50 @@ function renderList(){
   }).join('');
 }
 
-// ── AVISO DE CONCLUSÃO ────────────────────────────────────
+// ── HORA PICKER ────────────────────────────────────────────
+let horaSelec = null; // null = não selecionado
+let horaH = 8, horaM = 0;
+
+function toggleHoraPicker(){
+  const wrap = document.getElementById('horaPickerWrap');
+  const btn  = document.getElementById('horaPickerBtn');
+  const open = wrap.style.display === 'none';
+  wrap.style.display = open ? '' : 'none';
+  btn.style.display  = open ? 'none' : '';
+}
+
+function ajustarHora(delta){
+  horaH = (horaH + delta + 24) % 24;
+  document.getElementById('horaVal').textContent = String(horaH).padStart(2,'0');
+}
+
+function ajustarMin(delta){
+  horaM = (horaM + delta + 60) % 60;
+  document.getElementById('minVal').textContent = String(horaM).padStart(2,'0');
+}
+
+function confirmarHora(){
+  horaSelec = `${String(horaH).padStart(2,'0')}:${String(horaM).padStart(2,'0')}`;
+  document.getElementById('horaDisplay').textContent = `🕐 ${horaSelec}`;
+  document.getElementById('horaPickerBtn').textContent = `🕐 ${horaSelec} — alterar`;
+  document.getElementById('horaPickerBtn').style.color = 'var(--accent)';
+  document.getElementById('horaPickerBtn').style.borderColor = 'var(--accent)';
+  document.getElementById('horaPickerWrap').style.display = 'none';
+  document.getElementById('horaPickerBtn').style.display = '';
+}
+
+function limparHora(){
+  horaSelec = null;
+  horaH = 8; horaM = 0;
+  document.getElementById('horaDisplay').textContent = '';
+  document.getElementById('horaPickerBtn').textContent = '🕐 Selecionar horário (opcional)';
+  document.getElementById('horaPickerBtn').style.color = 'var(--text3)';
+  document.getElementById('horaPickerBtn').style.borderColor = 'var(--border)';
+  document.getElementById('horaVal').textContent = '08';
+  document.getElementById('minVal').textContent  = '00';
+  document.getElementById('horaPickerWrap').style.display = 'none';
+  document.getElementById('horaPickerBtn').style.display  = '';
+}
 async function avisarConclusao(idOS){
   const os = allOS.find(o=>o.idOrdemServico==idOS);
   if(!os) return;
@@ -1185,6 +1272,7 @@ function confirmarEquip(){
 function openSolic(){
   const hoje=new Date();
   document.getElementById('sPrazo').value='';
+  limparHora();
   document.getElementById('sNome').value=sessUser?sessUser.nome:'';
   document.getElementById('sEquipNum').value='';
   document.getElementById('sDescricao').value='';
@@ -1221,7 +1309,6 @@ async function enviarSolic(){
   const hoje=new Date();
   const dataHoje=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
   const[py,pm,pd]=prazoISO.split('-');
-  // Gera número de referência de 4 dígitos
   const refNum = String(Date.now()).slice(-4);
 
   try{
@@ -1229,12 +1316,15 @@ async function enviarSolic(){
       filial:filialSigla, solicitante:nome,
       idImobilizado, numImobilizado:equipNum,
       equipNome, descricao, prazo:prazoISO,
+      prazoHora: horaSelec||'',
       refNum,
       dataSolicit:new Date().toISOString()
     })});
   }catch(e){console.warn('Não salvou:',e.message);}
 
-  const msg=`📋 *PENDENTE — Lançar OS no Sistema GSB*\nFilial: ${filialSigla||'–'} · Ref: *#${refNum}*\n\n📅 *Data da solicitação:* ${dataHoje}\n⏰ *Prazo final:* ${pd}/${pm}/${py}\n👤 *Solicitante:* ${nome}\n🔧 *Equipamento:* Nº ${equipNum} — ${equipNome}\n\n📝 *O que precisa ser feito:*\n${descricao}\n\n_Favor lançar no sistema GSB com a Ref #${refNum}._`;
+  const prazoFmt  = `${pd}/${pm}/${py}${horaSelec ? ' às '+horaSelec : ''}`;
+
+  const msg=`📋 *PENDENTE — Lançar OS no Sistema GSB*\nFilial: ${filialSigla||'–'} · Ref: *#${refNum}*\n\n📅 *Data da solicitação:* ${dataHoje}\n⏰ *Prazo final:* ${prazoFmt}\n👤 *Solicitante:* ${nome}\n🔧 *Equipamento:* Nº ${equipNum} — ${equipNome}\n\n📝 *O que precisa ser feito:*\n${descricao}\n\n_Favor lançar no sistema GSB com a Ref #${refNum}._`;
   // window.location.href funciona no iOS/Android para abrir WhatsApp
   window.location.href=`https://wa.me/${whats}?text=${encodeURIComponent(msg)}`;
   closeSheet('solicOverlay');
