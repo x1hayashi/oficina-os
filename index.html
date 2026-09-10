@@ -406,20 +406,14 @@
 
   <!-- FILTROS ADICIONAIS -->
   <div class="extra-filters" id="extraFilters">
-    <div class="extra-filter-row" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="extra-filter-row" style="grid-template-columns:160px 1fr">
       <div class="extra-filter-item">
         <div class="extra-filter-label">Nº OS</div>
         <input class="extra-filter-select" id="filterNumOS" type="number" placeholder="Ex: 1990" oninput="renderList()" style="appearance:none;background-image:none">
       </div>
       <div class="extra-filter-item">
-        <div class="extra-filter-label">Executante</div>
-        <select class="extra-filter-select" id="filterExecutante" onchange="renderList()">
-          <option value="">Todos</option>
-        </select>
-      </div>
-      <div class="extra-filter-item">
-        <div class="extra-filter-label">Solicitante</div>
-        <select class="extra-filter-select" id="filterSolicitante" onchange="renderList()">
+        <div class="extra-filter-label">Funcionário (Exec./Solic./Resp./Aprov.)</div>
+        <select class="extra-filter-select" id="filterFuncionario" onchange="renderList()">
           <option value="">Todos</option>
         </select>
       </div>
@@ -904,52 +898,52 @@ function filterOS(){
   else if(currentFilter==='preventiva')list = list.filter(o=>o.manutencao==='P'||o.tipo==='P');
   else if(currentFilter==='concluida') list = list.filter(o=>isConcluida(o));
   // Extra filters
-  filterExecId  = document.getElementById('filterExecutante')?.value  || '';
-  filterSolicId = document.getElementById('filterSolicitante')?.value || '';
-  const filterNum = document.getElementById('filterNumOS')?.value.trim() || '';
-  if(filterNum)     list = list.filter(o=>String(o.numeroOrs||o.idOrdemServico).includes(filterNum));
-  if(filterExecId)  list = list.filter(o=>String(o.idExecutante)  === filterExecId);
-  if(filterSolicId) list = list.filter(o=>String(o.idSolicitante) === filterSolicId);
+  const filterFunc = document.getElementById('filterFuncionario')?.value || '';
+  const filterNum  = document.getElementById('filterNumOS')?.value.trim() || '';
+  if(filterNum) list = list.filter(o=>String(o.numeroOrs||o.idOrdemServico).includes(filterNum));
+  if(filterFunc) list = list.filter(o=>
+    String(o.idExecutante)  === filterFunc ||
+    String(o.idSolicitante) === filterFunc ||
+    String(o.idResponsavel) === filterFunc ||
+    String(o.idAprovador)   === filterFunc
+  );
   const clearBtn = document.getElementById('clearFiltersBtn');
-  if(clearBtn) clearBtn.style.display = (filterExecId||filterSolicId||filterNum) ? '' : 'none';
+  if(clearBtn) clearBtn.style.display = (filterFunc||filterNum) ? '' : 'none';
   return list;
 }
 
 function populateExtraFilters(){
-  // Pega IDs únicos de executantes e solicitantes das OS carregadas
-  const execIds  = [...new Set(allOS.map(o=>o.idExecutante).filter(Boolean))];
-  const solicIds = [...new Set(allOS.map(o=>o.idSolicitante).filter(Boolean))];
+  // Coleta IDs únicos de todos os papéis (exec, solic, resp, aprov)
+  const allIds = [...new Set([
+    ...allOS.map(o=>o.idExecutante),
+    ...allOS.map(o=>o.idSolicitante),
+    ...allOS.map(o=>o.idResponsavel),
+    ...allOS.map(o=>o.idAprovador),
+  ].filter(Boolean))];
 
-  const execSel  = document.getElementById('filterExecutante');
-  const solicSel = document.getElementById('filterSolicitante');
-  if(!execSel||!solicSel) return;
+  const sel = document.getElementById('filterFuncionario');
+  if(!sel) return;
 
-  const makeOptions = (ids, currentVal) => {
-    const sorted = ids
-      .map(id => ({ id, nome: fname(id) }))
-      .sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    return '<option value="">Todos</option>' +
-      sorted.map(({id,nome})=>`<option value="${id}" ${currentVal===String(id)?'selected':''}>${nome}</option>`).join('');
-  };
+  const curVal = sel.value;
+  const sorted = allIds
+    .map(id=>({id, nome: fname(id)}))
+    .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
 
-  execSel.innerHTML  = makeOptions(execIds,  filterExecId);
-  solicSel.innerHTML = makeOptions(solicIds, filterSolicId);
+  sel.innerHTML = '<option value="">Todos</option>' +
+    sorted.map(({id,nome})=>`<option value="${id}" ${curVal===String(id)?'selected':''}>${nome}</option>`).join('');
 
-  // Pré-seleciona solicitante pelo usuário logado
-  if(!filterSolicId && sessUser){
-    // Tenta achar o idFuncionario pelo nome do usuário logado
+  // Pré-seleciona pelo usuário logado
+  if(!curVal && sessUser){
     const matchId = Object.entries(mapFunc).find(([id,nome])=>nome===sessUser.nome)?.[0];
-    if(matchId && solicIds.includes(Number(matchId)||matchId)){
-      solicSel.value = matchId;
-      filterSolicId  = matchId;
+    if(matchId && allIds.includes(Number(matchId)||matchId)){
+      sel.value = matchId;
     }
   }
 }
 
 function clearExtraFilters(){
   filterExecId=''; filterSolicId='';
-  document.getElementById('filterExecutante').value='';
-  document.getElementById('filterSolicitante').value='';
+  document.getElementById('filterFuncionario').value='';
   document.getElementById('filterNumOS').value='';
   document.getElementById('clearFiltersBtn').style.display='none';
   renderList();
