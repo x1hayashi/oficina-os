@@ -41,6 +41,7 @@
   .auth-whats-hint{font-size:12px;color:var(--text3);margin-top:4px}
   /* ── HEADER ── */
   .header{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  @media(min-width:768px){.header{padding:14px 28px;}}
   .logo{font-size:17px;font-weight:600;letter-spacing:-.02em}.logo span{color:var(--accent)}
   .header-right{display:flex;gap:8px;align-items:center}
   .icon-btn{background:none;border:1.5px solid var(--border);color:var(--text2);padding:7px 10px;border-radius:8px;font-size:16px;cursor:pointer;line-height:1}
@@ -226,7 +227,57 @@
   .phone-prefix{padding:12px 10px 12px 14px;font-size:15px;color:var(--text2);font-weight:500;background:var(--surface2);border-right:1.5px solid var(--border);flex-shrink:0}
   .phone-input{border:none!important;border-radius:0!important;background:transparent!important;flex:1;padding:12px 14px 12px 10px;outline:none;font-size:15px}
   /* BIOMETRIC */
-  ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  /* ── DESKTOP LAYOUT ─────────────────────────────────────── */
+  @media (min-width: 768px){
+    body { max-width: 1200px; margin: 0 auto; }
+
+    /* Header fixo com largura controlada */
+    .app-header { max-width: 1200px; left: 50%; transform: translateX(-50%); }
+
+    /* Cards em grid 2 colunas */
+    .os-list { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 0 24px; }
+    .pend-list { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 0 24px; }
+    .admin-list { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* Filtros em linha */
+    .date-row { padding: 16px 24px 8px; }
+    .stats-bar { padding: 12px 24px; }
+    .filters { padding: 4px 24px 12px; }
+    .extra-filter-row { grid-template-columns: 160px 1fr 1fr !important; }
+    .extra-filters { padding: 0 24px 4px; }
+    .section-label { padding: 4px 24px 8px; }
+
+    /* Modais maiores */
+    .modal { max-width: 700px; margin: 0 auto; border-radius: 16px; max-height: 90vh; }
+    .modal-overlay { align-items: center; }
+    .sheet { max-width: 600px; margin: 0 auto; border-radius: 16px; max-height: 90vh; }
+    .sheet-overlay { align-items: center; }
+
+    /* Admin panel */
+    #panelAdmin { padding: 0 24px; }
+    .admin-user-card { padding: 16px 20px; }
+    .admin-user-actions { flex-direction: row; flex-wrap: wrap; }
+
+    /* Fab */
+    .fab { right: calc(50% - 580px); }
+
+    /* Main tabs */
+    .main-tabs { padding: 0 24px; }
+
+    /* OS cards 3 colunas em telas grandes */
+    @media (min-width: 1100px){
+      .os-list { grid-template-columns: 1fr 1fr 1fr; }
+      .pend-list { grid-template-columns: 1fr 1fr 1fr; }
+    }
+  }
+
+  @media (min-width: 768px){
+    /* Datas e seção do painel do admin */
+    #panelPendentes .section-label,
+    #panelOS .section-label { padding: 4px 24px 8px; }
+    #panelPendentes > div:not(.pend-list),
+    #panelOS > div:not(.os-list) { padding-left: 24px; padding-right: 24px; }
+  }
 </style>
 </head>
 <body>
