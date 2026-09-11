@@ -1217,21 +1217,23 @@ _OS finalizada e disponível no sistema GSB._`;
 }
 
 // ── KANBAN ────────────────────────────────────────────────
-let kanbanColunas = [];
-let kanbanCards   = {}; // { id_os: coluna_id }
+let kanbanColunas  = [];
+let kanbanCards    = {}; // { id_os: coluna_id }
+let kanbanOrdem    = {}; // { id_os: ordem }
 let kanbanPollInterval = null;
-let draggedOsId = null;
+let draggedOsId    = null;
+let dragOverOsId   = null; // card being hovered over (for vertical reorder)
 
 async function loadKanban(){
   try{
     const [rCol, rCard] = await Promise.all([
-      fetch(`${PROXY}/kanban/colunas/${filialSigla}`, {headers:apiHeaders()}),
-      fetch(`${PROXY}/kanban/cards/${filialSigla}`,   {headers:apiHeaders()}),
+      fetch(PROXY+'/kanban/colunas/${filialSigla}', {headers:apiHeaders()}),
+      fetch(PROXY+'/kanban/cards/${filialSigla}',   {headers:apiHeaders()}),
     ]);
     kanbanColunas = await rCol.json();
     const cards   = await rCard.json();
     kanbanCards   = {};
-    for(const c of cards) kanbanCards[String(c.id_os)] = Number(c.coluna_id);
+    for(const c of cards) kanbanCards[String(c.id_os)] = { colunaId: Number(c.coluna_id), ordem: c.ordem||0 };
     renderKanban();
   }catch(e){ console.warn('Kanban load error:', e.message); }
 }
@@ -1243,59 +1245,63 @@ function renderKanban(){
 
   board.innerHTML = kanbanColunas.map((col, idx)=>{
     const cardsNaCol = osList.filter(os=>{
-      const colunaId = kanbanCards[String(os.idOrdemServico)];
-      // Se não tem coluna definida, vai para a primeira coluna (Pendente)
+      const entry = kanbanCards[String(os.idOrdemServico)];
+      const colunaId = entry ? entry.colunaId : null;
       if(colunaId === undefined || colunaId === null) return idx === 0;
       return Number(colunaId) === Number(col.id);
+    }).sort((a,b)=>{
+      const oa = (kanbanCards[String(a.idOrdemServico)] || {}).ordem ?? 9999;
+      const ob = (kanbanCards[String(b.idOrdemServico)] || {}).ordem ?? 9999;
+      return oa - ob;
     });
-
     return `<div class="kb-col" id="col-${col.id}"
-        ondragover="event.preventDefault();this.classList.add('drag-over')"
-        ondragleave="this.classList.remove('drag-over')"
+        ondragover="dragOverCol(event,${col.id})"
+        ondragleave="dragLeaveCol(event,${col.id})"
         ondrop="dropCard(event,${col.id})">
       <div class="kb-col-header">
-        <button class="kb-col-del" onclick="moverColuna(${col.id},-1)" title="Mover para esquerda" ${idx===0?'disabled style="opacity:.3"':''}>◀</button>
+        <button class="kb-col-del" onclick="moverColuna(${col.id},-1)" title="Mover para esquerda" ${idx===0?'disabled':''}  style="${idx===0?'opacity:.3':''}">◀</button>
         <div class="kb-col-title" ondblclick="editColTitle(this,${col.id})" title="Clique duplo para editar">${col.nome}</div>
         <span class="kb-col-count">${cardsNaCol.length}</span>
-        <button class="kb-col-del" onclick="moverColuna(${col.id},1)" title="Mover para direita" ${idx===kanbanColunas.length-1?'disabled style="opacity:.3"':''}>▶</button>
-        <button class="kb-col-del" 
+        <button class="kb-col-del" onclick="moverColuna(${col.id},1)" title="Mover para direita" ${idx===kanbanColunas.length-1?'disabled':''} style="${idx===kanbanColunas.length-1?'opacity:.3':''}">▶</button>
+        <button class="kb-col-del"
           onmousedown="startDelColuna(event,${col.id},'${col.nome.replace(/'/g,"\\'")}',this)"
-          onmouseup="cancelDelColuna(this)"
-          onmouseleave="cancelDelColuna(this)"
+          onmouseup="cancelDelColuna(this)" onmouseleave="cancelDelColuna(this)"
           ontouchstart="startDelColuna(event,${col.id},'${col.nome.replace(/'/g,"\\'")}',this)"
-          ontouchend="cancelDelColuna(this)"
-          title="Segure para excluir coluna">🗑</button>
+          ontouchend="cancelDelColuna(this)" title="Segure para excluir coluna">🗑</button>
       </div>
       <div class="kb-cards" id="cards-${col.id}">
-        ${cardsNaCol.map(os=>renderKbCard(os)).join('')}
-        <div class="kb-drop-zone"></div>
+        ${cardsNaCol.map((os,ci)=>renderKbCard(os,col.id,ci,cardsNaCol.length)).join('')}
       </div>
     </div>`;
   }).join('');
 }
 
-function renderKbCard(os){
+function renderKbCard(os, colunaId, cardIdx, totalCards){
   const equipNum  = mapEquipNum[String(os.idImobilizado)]||'';
-  // Apenas o modelo (última palavra ou após o traço)
   const equipFull = ename(os.idImobilizado);
   const equipMod  = equipFull.includes(' - ') ? equipFull.split(' - ').slice(1).join(' - ')
                   : equipFull.split(' ').slice(-2).join(' ');
   const solic     = fname(os.idSolicitante).split(' ')[0];
   const exec      = fname(os.idExecutante).split(' ')[0];
   const urg       = uc(os.idUrgencia);
-  // Serviço dos itens
   const items     = osItemsCache[String(os.idOrdemServico)]||[];
   const servico   = items.map(it=>it.servicoIdentificado||it.servicoRealizar).filter(Boolean)[0]||os.observacao||'';
   const prazo     = fmtDate(os.dataEntrega);
   const entrada   = fmtDate(os.dataInicio);
+  const idOS      = os.idOrdemServico;
   return `<div class="kb-card ${urg}"
     draggable="true"
-    ondragstart="dragStart(event,${os.idOrdemServico})"
+    ondragstart="dragStart(event,${idOS})"
     ondragend="dragEnd(event)"
-    onclick="openModal(${os.idOrdemServico})">
+    ondragover="dragOverCard(event,${idOS},${colunaId})"
+    onclick="openModal(${idOS})">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent)">OS #${os.numeroOrs||os.idOrdemServico}</span>
-      ${os.idUrgencia==1?'<span style="font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:10px;font-weight:600">URGENTE</span>':''}
+      <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent)">OS #${os.numeroOrs||idOS}</span>
+      <div style="display:flex;gap:2px;align-items:center">
+        ${os.idUrgencia==1?'<span style="font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:10px;font-weight:600">URGENTE</span>':''}
+        <button onclick="event.stopPropagation();moverCard(${idOS},${colunaId},-1)" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0 3px;font-size:12px" ${cardIdx===0?'disabled style="opacity:.2"':''} title="Subir">▲</button>
+        <button onclick="event.stopPropagation();moverCard(${idOS},${colunaId},1)"  style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0 3px;font-size:12px" ${cardIdx===totalCards-1?'disabled style="opacity:.2"':''} title="Descer">▼</button>
+      </div>
     </div>
     <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${equipNum?'Nº '+equipNum+' ':''}${equipMod}</div>
     ${servico?`<div style="font-size:11px;color:var(--text2);margin-bottom:5px;line-height:1.3">${servico.length>60?servico.slice(0,60)+'…':servico}</div>`:''}
@@ -1313,52 +1319,137 @@ function renderKbCard(os){
 function dragStart(e, idOS){
   draggedOsId = idOS;
   e.dataTransfer.effectAllowed='move';
-  setTimeout(()=>{
-    const card = e.target; if(card) card.classList.add('dragging');
-  },0);
+  setTimeout(()=>{ const card=e.target; if(card) card.classList.add('dragging'); },0);
 }
 function dragEnd(e){
   e.target.classList.remove('dragging');
   document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
+  dragOverOsId = null;
+}
+function dragOverCol(e, colunaId){
+  e.preventDefault();
+  const col = document.getElementById('col-'+colunaId);
+  if(col) col.classList.add('drag-over');
+}
+function dragLeaveCol(e, colunaId){
+  if(!e.currentTarget.contains(e.relatedTarget)){
+    const col = document.getElementById('col-'+colunaId);
+    if(col) col.classList.remove('drag-over');
+  }
+}
+function dragOverCard(e, targetOsId, colunaId){
+  e.preventDefault(); e.stopPropagation();
+  if(draggedOsId === targetOsId) return;
+  dragOverOsId = targetOsId;
+  // Reordena localmente para preview visual
+  const osList = filterOS();
+  const colCards = osList.filter(os=>{
+    const entry = kanbanCards[String(os.idOrdemServico)];
+    const cId = entry ? entry.colunaId : null;
+    if(cId===null||cId===undefined) return kanbanColunas[0]?.id === colunaId;
+    return Number(cId) === Number(colunaId);
+  }).sort((a,b)=>(kanbanCards[String(a.idOrdemServico)]?.ordem??9999)-(kanbanCards[String(b.idOrdemServico)]?.ordem??9999));
+  const fromIdx = colCards.findIndex(os=>String(os.idOrdemServico)===String(draggedOsId));
+  const toIdx   = colCards.findIndex(os=>String(os.idOrdemServico)===String(targetOsId));
+  if(fromIdx===-1||toIdx===-1) return;
+  // Swap preview
+  colCards.splice(toIdx, 0, colCards.splice(fromIdx,1)[0]);
+  colCards.forEach((os,i)=>{
+    if(!kanbanCards[String(os.idOrdemServico)]) kanbanCards[String(os.idOrdemServico)]={colunaId:colunaId,ordem:i};
+    else kanbanCards[String(os.idOrdemServico)].ordem = i;
+  });
+  renderKanban();
 }
 
 async function dropCard(e, colunaId){
   e.preventDefault();
-  const col = document.getElementById(`col-${colunaId}`);
+  const col = document.getElementById('col-'+colunaId);
   if(col) col.classList.remove('drag-over');
   if(!draggedOsId) return;
-  // Atualiza local imediatamente
-  kanbanCards[String(draggedOsId)] = Number(colunaId);
+
+  // Garante que o card está na estrutura correta
+  if(!kanbanCards[String(draggedOsId)]) kanbanCards[String(draggedOsId)]={colunaId:Number(colunaId),ordem:9999};
+  else kanbanCards[String(draggedOsId)].colunaId = Number(colunaId);
+
+  // Recalcula ordem dos cards na coluna destino
+  const osList = filterOS();
+  const colCards = osList.filter(os=>{
+    const e2 = kanbanCards[String(os.idOrdemServico)];
+    const cId = e2 ? e2.colunaId : null;
+    if(cId===null||cId===undefined) return kanbanColunas[0]?.id===Number(colunaId);
+    return Number(cId)===Number(colunaId);
+  }).sort((a,b)=>(kanbanCards[String(a.idOrdemServico)]?.ordem??9999)-(kanbanCards[String(b.idOrdemServico)]?.ordem??9999));
+  colCards.forEach((os,i)=>{ kanbanCards[String(os.idOrdemServico)].ordem=i; });
+
   renderKanban();
+
   // Salva no servidor
   try{
-    await fetch(`${PROXY}/kanban/cards`,{
+    const payload = colCards.map(os=>({
+      id_os:String(os.idOrdemServico), filial:filialSigla,
+      coluna_id:Number(colunaId), ordem:kanbanCards[String(os.idOrdemServico)].ordem
+    }));
+    await fetch(PROXY+'/kanban/cards/reorder',{
       method:'PUT', headers:apiHeaders(),
-      body: JSON.stringify({id_os:String(draggedOsId), filial:filialSigla, coluna_id:colunaId})
+      body: JSON.stringify({cards:payload})
     });
-  }catch(e){ showToast('Erro ao mover card', true); }
+  }catch{ showToast('Erro ao mover card', true); }
   draggedOsId = null;
+}
+
+// Mover card verticalmente com botões ▲▼
+async function moverCard(idOS, colunaId, delta){
+  const osList = filterOS();
+  const colCards = osList.filter(os=>{
+    const e = kanbanCards[String(os.idOrdemServico)];
+    const cId = e ? e.colunaId : null;
+    if(cId===null||cId===undefined) return kanbanColunas[0]?.id===Number(colunaId);
+    return Number(cId)===Number(colunaId);
+  }).sort((a,b)=>(kanbanCards[String(a.idOrdemServico)]?.ordem??9999)-(kanbanCards[String(b.idOrdemServico)]?.ordem??9999));
+
+  const idx = colCards.findIndex(os=>String(os.idOrdemServico)===String(idOS));
+  const newIdx = idx + delta;
+  if(idx===-1||newIdx<0||newIdx>=colCards.length) return;
+
+  // Troca
+  const temp = colCards[idx]; colCards[idx]=colCards[newIdx]; colCards[newIdx]=temp;
+  colCards.forEach((os,i)=>{
+    if(!kanbanCards[String(os.idOrdemServico)]) kanbanCards[String(os.idOrdemServico)]={colunaId:Number(colunaId),ordem:i};
+    else kanbanCards[String(os.idOrdemServico)].ordem=i;
+  });
+  renderKanban();
+
+  // Salva
+  try{
+    await fetch(PROXY+'/kanban/cards/reorder',{
+      method:'PUT', headers:apiHeaders(),
+      body: JSON.stringify({cards:colCards.map((os,i)=>({
+        id_os:String(os.idOrdemServico), filial:filialSigla,
+        coluna_id:Number(colunaId), ordem:i
+      }))})
+    });
+  }catch{ showToast('Erro ao reordenar', true); }
 }
 
 // Edição inline do título da coluna
 function editColTitle(el, colunaId){
-  const cur = el.textContent;
-  el.outerHTML = `<input class="kb-col-title-input" id="inp-col-${colunaId}" value="${cur}"
-    onblur="saveColTitle(this,${colunaId})"
-    onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')cancelColTitle(this,'${cur.replace(/'/g,"\\'")}')">`;
-  document.getElementById(`inp-col-${colunaId}`)?.focus();
+  const cur = el.textContent.replace(/"/g,'&quot;');
+  el.outerHTML = '<input class="kb-col-title-input" id="inp-col-'+colunaId+'" value="'+cur+'" '
+    +'onblur="saveColTitle(this,'+colunaId+')" '
+    +'onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\')this.blur()">';
+  document.getElementById('inp-col-'+colunaId)?.focus();
 }
 async function saveColTitle(inp, colunaId){
   const nome = inp.value.trim() || inp.defaultValue;
-  // Substitui input pelo div novamente
-  inp.outerHTML = `<div class="kb-col-title" ondblclick="editColTitle(this,${colunaId})" title="Clique duplo para editar">${nome}</div>`;
+  inp.outerHTML = '<div class="kb-col-title" ondblclick="editColTitle(this,'+colunaId+')" title="Clique duplo para editar">'+nome+'</div>';
   const col = kanbanColunas.find(c=>c.id===colunaId);
   if(col) col.nome = nome;
-  try{ await fetch(`${PROXY}/kanban/colunas/${colunaId}`,{method:'PUT',headers:apiHeaders(),body:JSON.stringify({nome})}); }
+  try{ await fetch(PROXY+'/kanban/colunas/'+colunaId,{method:'PUT',headers:apiHeaders(),body:JSON.stringify({nome})}); }
   catch{ showToast('Erro ao salvar', true); }
 }
 function cancelColTitle(inp, original){
-  inp.outerHTML = `<div class="kb-col-title" ondblclick="editColTitle(this,${inp.id.replace('inp-col-','').replace(/\D/g,'')})" title="Clique duplo para editar">${original}</div>`;
+  const id = inp.id.replace('inp-col-','');
+  inp.outerHTML = '<div class="kb-col-title" ondblclick="editColTitle(this,'+id+')" title="Clique duplo para editar">'+original+'</div>';
 }
 
 async function moverColuna(id, delta){
@@ -1379,7 +1470,7 @@ async function moverColuna(id, delta){
   // Salva nova ordem no servidor
   try{
     await Promise.all(kanbanColunas.map((c,i)=>
-      fetch(`${PROXY}/kanban/colunas/${c.id}`,{
+      fetch(PROXY+'/kanban/colunas/'+c.id,{
         method:'PUT', headers:apiHeaders(),
         body: JSON.stringify({ordem:i})
       })
@@ -1411,8 +1502,8 @@ function cancelDelColuna(btn){
 }
 
 async function deleteColuna(id, nome){
-  showToast(`Coluna "${nome}" excluída`);
-  await fetch(`${PROXY}/kanban/colunas/${id}`,{method:'DELETE',headers:apiHeaders()});
+  showToast('Coluna "'+nome+'" excluída');
+  await fetch(PROXY+'/kanban/colunas/'+id,{method:'DELETE',headers:apiHeaders()});
   kanbanColunas = kanbanColunas.filter(c=>c.id!==id);
   for(const k in kanbanCards){ if(Number(kanbanCards[k])===Number(id)) delete kanbanCards[k]; }
   renderKanban();
@@ -1430,7 +1521,7 @@ async function confirmarAddColuna(){
   if(!nome){ showToast('Digite um nome para a coluna', true); return; }
   const ordem = kanbanColunas.length ? Math.max(...kanbanColunas.map(c=>c.ordem))+1 : 0;
   try{
-    const res = await fetch(`${PROXY}/kanban/colunas`,{
+    const res = await fetch(PROXY+'/kanban/colunas',{
       method:'POST', headers:apiHeaders(),
       body: JSON.stringify({filial:filialSigla, nome, ordem})
     });
@@ -1447,13 +1538,13 @@ function startKanbanPoll(){
   kanbanPollInterval = setInterval(async()=>{
     try{
       const [rCol, rCard] = await Promise.all([
-        fetch(`${PROXY}/kanban/colunas/${filialSigla}`,{headers:apiHeaders()}),
-        fetch(`${PROXY}/kanban/cards/${filialSigla}`,  {headers:apiHeaders()}),
+        fetch(PROXY+'/kanban/colunas/${filialSigla}',{headers:apiHeaders()}),
+        fetch(PROXY+'/kanban/cards/${filialSigla}',  {headers:apiHeaders()}),
       ]);
       const cols  = await rCol.json();
       const cards = await rCard.json();
       const newMap = {};
-      for(const c of cards) newMap[String(c.id_os)] = Number(c.coluna_id);
+      for(const c of cards) newMap[String(c.id_os)] = { colunaId: Number(c.coluna_id), ordem: c.ordem||0 };
       // Só re-renderiza se mudou algo
       const changed = JSON.stringify(cols)!==JSON.stringify(kanbanColunas) ||
                       JSON.stringify(newMap)!==JSON.stringify(kanbanCards);
