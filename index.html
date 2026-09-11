@@ -1221,7 +1221,7 @@ async function loadKanban(){
     kanbanColunas = await rCol.json();
     const cards   = await rCard.json();
     kanbanCards   = {};
-    for(const c of cards) kanbanCards[String(c.id_os)] = c.coluna_id;
+    for(const c of cards) kanbanCards[String(c.id_os)] = Number(c.coluna_id);
     renderKanban();
   }catch(e){ console.warn('Kanban load error:', e.message); }
 }
@@ -1232,7 +1232,7 @@ function renderKanban(){
   document.getElementById('kanbanOSCount').textContent = `${osList.length} OS em andamento`;
 
   board.innerHTML = kanbanColunas.map(col=>{
-    const cardsNaCol = osList.filter(os=>kanbanCards[String(os.idOrdemServico)] === col.id);
+    const cardsNaCol = osList.filter(os=>kanbanCards[String(os.idOrdemServico)] === Number(col.id));
     const semCol     = col === kanbanColunas[0]
       ? osList.filter(os=>!kanbanCards[String(os.idOrdemServico)])
       : [];
@@ -1290,7 +1290,7 @@ async function dropCard(e, colunaId){
   if(col) col.classList.remove('drag-over');
   if(!draggedOsId) return;
   // Atualiza local imediatamente
-  kanbanCards[String(draggedOsId)] = colunaId;
+  kanbanCards[String(draggedOsId)] = Number(colunaId);
   renderKanban();
   // Salva no servidor
   try{
@@ -1341,15 +1341,18 @@ function closeAddColuna(){ document.getElementById('addColunaOverlay').classList
 
 async function confirmarAddColuna(){
   const nome = document.getElementById('addColNome').value.trim();
-  if(!nome) return;
+  if(!nome){ showToast('Digite um nome para a coluna', true); return; }
   const ordem = kanbanColunas.length ? Math.max(...kanbanColunas.map(c=>c.ordem))+1 : 0;
   try{
-    const res  = await fetch(`${PROXY}/kanban/colunas`,{method:'POST',headers:apiHeaders(),body:JSON.stringify({filial:filialSigla,nome,ordem})});
-    const nova = await res.json();
-    kanbanColunas.push(nova);
+    const res = await fetch(`${PROXY}/kanban/colunas`,{
+      method:'POST', headers:apiHeaders(),
+      body: JSON.stringify({filial:filialSigla, nome, ordem})
+    });
+    if(!res.ok){ showToast('Erro ao criar coluna', true); return; }
     closeAddColuna();
-    renderKanban();
-  }catch{ showToast('Erro ao criar coluna', true); }
+    // Recarrega colunas do servidor para garantir dados corretos
+    await loadKanban();
+  }catch(e){ showToast('Erro: '+e.message, true); }
 }
 
 // Polling tempo real (5s)
@@ -1364,7 +1367,7 @@ function startKanbanPoll(){
       const cols  = await rCol.json();
       const cards = await rCard.json();
       const newMap = {};
-      for(const c of cards) newMap[String(c.id_os)] = c.coluna_id;
+      for(const c of cards) newMap[String(c.id_os)] = Number(c.coluna_id);
       // Só re-renderiza se mudou algo
       const changed = JSON.stringify(cols)!==JSON.stringify(kanbanColunas) ||
                       JSON.stringify(newMap)!==JSON.stringify(kanbanCards);
