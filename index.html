@@ -649,8 +649,16 @@ const CAD_CACHE_KEY   = 'gsb_cad_cache';
 const CACHE_TTL       = 24 * 60 * 60 * 1000; // 24 horas
 
 function saveCache(key, data){
-  try{ localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data })); }
-  catch(e){ console.warn('Cache cheio:', e.message); }
+  try{
+    localStorage.setItem(key, JSON.stringify({savedAt:Date.now(), data}));
+  }catch(e){
+    // Quota exceeded — limpa caches antigos e tenta de novo
+    try{
+      localStorage.removeItem(PROD_CACHE_KEY);
+      localStorage.removeItem(CAD_CACHE_KEY);
+      localStorage.setItem(key, JSON.stringify({savedAt:Date.now(), data}));
+    }catch(e2){ console.warn('Cache indisponível:', e2.message); }
+  }
 }
 
 function loadCache(key){
@@ -711,6 +719,7 @@ function fname(id){return id?(mapFunc[id]||`#${id}`):'–';}
 function sname(id){return id?(mapSetor[id]||`#${id}`):'–';}
 function ename(id){return id?(mapEquip[id]||`#${id}`):'–';}
 function pname(id){return id?(mapProdFull[id]||`Produto #${id}`):'–';}
+function firstTwo(n){if(!n||n==='–')return n;const p=n.trim().split(' ');return p.length>1?p[0]+' '+p[1]:p[0];}
 function showToast(msg,isError=false){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className='toast'+(isError?' error':'');t.classList.add('show');
