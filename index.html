@@ -227,7 +227,38 @@
   .phone-prefix{padding:12px 10px 12px 14px;font-size:15px;color:var(--text2);font-weight:500;background:var(--surface2);border-right:1.5px solid var(--border);flex-shrink:0}
   .phone-input{border:none!important;border-radius:0!important;background:transparent!important;flex:1;padding:12px 14px 12px 10px;outline:none;font-size:15px}
   /* BIOMETRIC */
-  /* ── DESKTOP LAYOUT ─────────────────────────────────────── */
+  /* ── KANBAN ─────────────────────────────────────────────── */
+  .kb-col{flex-shrink:0;width:280px;background:var(--surface2);border-radius:12px;padding:10px;border:1.5px solid var(--border)}
+  .kb-col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px}
+  .kb-col-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em;flex:1;cursor:pointer;padding:4px 6px;border-radius:6px}
+  .kb-col-title:hover{background:var(--border)}
+  .kb-col-title-input{font-size:13px;font-weight:700;color:var(--text);background:var(--surface);border:1.5px solid var(--accent);border-radius:6px;padding:4px 6px;outline:none;width:100%}
+  .kb-col-count{font-size:11px;color:var(--text3);background:var(--border);padding:2px 7px;border-radius:10px;flex-shrink:0}
+  .kb-col-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 5px;border-radius:4px;flex-shrink:0}
+  .kb-col-del:hover{color:var(--red)}
+  .kb-cards{min-height:80px;display:flex;flex-direction:column;gap:8px}
+  .kb-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;cursor:grab;transition:box-shadow .15s,transform .15s;border-left:3px solid var(--border);user-select:none}
+  .kb-card:active{cursor:grabbing}
+  .kb-card.dragging{opacity:.5;transform:scale(.97);box-shadow:0 4px 16px rgba(0,0,0,.15)}
+  .kb-card.urgente{border-left-color:var(--red)}
+  .kb-card.normal{border-left-color:var(--yellow)}
+  .kb-card.baixa{border-left-color:var(--green)}
+  .kb-card-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);margin-bottom:3px}
+  .kb-card-equip{font-size:11px;color:var(--text3);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kb-card-solic{font-size:12px;color:var(--text2)}
+  .kb-drop-zone{border:2px dashed var(--accent);border-radius:10px;min-height:60px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .kb-drop-zone.active{opacity:1;pointer-events:auto}
+  .kb-col.drag-over .kb-drop-zone{opacity:1}
+  @media(min-width:768px){.kb-col{width:300px}}
+
+  /* ── ADD COLUNA MODAL ───────────────────────────────────── */
+  .add-col-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;padding:24px}
+  .add-col-overlay.open{display:flex}
+  .add-col-box{background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:340px;box-shadow:0 4px 24px rgba(0,0,0,.15)}
+
+  /* ── SCROLLBAR KANBAN ───────────────────────────────────── */
+  #kanbanBoard::-webkit-scrollbar{height:6px}
+  #kanbanBoard::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
   @media (min-width: 768px){
     body { max-width: 1200px; margin: 0 auto; }
 
@@ -397,11 +428,8 @@
     <div class="stat-card total"><div class="stat-num" id="statTotal">–</div><div class="stat-label">Total</div></div>
   </div>
   <div class="filters">
-    <div class="filter-chip" onclick="setFilter('todos',this)">Todas</div>
-    <div class="filter-chip" onclick="setFilter('urgente',this)">🔴 Urgente</div>
-    <div class="filter-chip active" onclick="setFilter('aberta',this)">Em andamento</div>
-    <div class="filter-chip" onclick="setFilter('preventiva',this)">Preventiva</div>
-    <div class="filter-chip" onclick="setFilter('concluida',this)">Concluída</div>
+    <div class="filter-chip active" id="chipAberta"  onclick="setFilter('aberta',this)">Em andamento</div>
+    <div class="filter-chip"        id="chipConclui" onclick="setFilter('concluida',this)">Concluída</div>
   </div>
 
   <!-- FILTROS ADICIONAIS -->
@@ -430,8 +458,15 @@
   <div style="padding:0 20px 10px;font-size:13px;color:var(--text3);">
     Filial: <span class="filial-badge" id="filialActiveBadge" onclick="trocarFilial()">– ↺ Trocar</span>
   </div>
-  <div class="os-list" id="osList">
-    <div class="state-box"><div class="state-icon">🔧</div><div class="state-title">Carregando...</div></div>
+  <div class="os-list" id="osList" style="display:none"></div>
+
+  <!-- KANBAN VIEW -->
+  <div id="kanbanView" style="display:none">
+    <div style="padding:8px 20px 10px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;color:var(--text3)" id="kanbanOSCount"></span>
+      <button onclick="openAddColuna()" style="background:none;border:1.5px dashed var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;">+ Coluna</button>
+    </div>
+    <div id="kanbanBoard" style="display:flex;gap:12px;overflow-x:auto;padding:0 20px 20px;min-height:60vh;scrollbar-width:thin;align-items:flex-start;"></div>
   </div>
 </div>
 
@@ -578,6 +613,19 @@
 </div>
 
 <!-- OS DETAIL MODAL -->
+<!-- KANBAN ADD COLUNA -->
+<div class="add-col-overlay" id="addColunaOverlay" onclick="if(event.target===this)closeAddColuna()">
+  <div class="add-col-box">
+    <div style="font-size:17px;font-weight:600;margin-bottom:16px">Nova Coluna</div>
+    <div class="form-field">
+      <div class="form-label">Nome da coluna</div>
+      <input class="form-input" id="addColNome" placeholder="Ex: Em Revisão" type="text" onkeydown="if(event.key==='Enter')confirmarAddColuna()">
+    </div>
+    <button class="btn-primary" onclick="confirmarAddColuna()">Adicionar</button>
+    <button class="btn-ghost" onclick="closeAddColuna()">Cancelar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
   <div class="modal"><div class="modal-handle"></div><div id="modalContent"></div></div>
 </div>
@@ -789,7 +837,8 @@ function switchMainTab(tab){
   document.getElementById('panelOS').style.display       = tab==='os'        ? '' : 'none';
   document.getElementById('panelPendentes').style.display= tab==='pendentes' ? '' : 'none';
   document.getElementById('panelAdmin').style.display    = tab==='admin'     ? '' : 'none';
-  if(tab==='pendentes') renderPendentes();
+  if(tab==='pendentes') { renderPendentes(); stopKanbanPoll(); }
+  if(tab==='os' && currentFilter==='aberta') { loadKanban(); startKanbanPoll(); }
 }
 
 // ── API ────────────────────────────────────────────────────
@@ -866,7 +915,15 @@ async function loadAll(){
     osProdCache={};osItemsCache={};
     for(const p of allOSProd){const oid=String(p.idOrdemServico);if(osIds.has(oid)){if(!osProdCache[oid])osProdCache[oid]=[];osProdCache[oid].push(p);}}
     for(const it of allOSItems){const oid=String(it.idOrdemServico);if(osIds.has(oid)){if(!osItemsCache[oid])osItemsCache[oid]=[];osItemsCache[oid].push(it);}}
-    updateStats();renderList();populateExtraFilters();
+    updateStats();
+    // Inicia no modo kanban (Em andamento)
+    document.getElementById('osList').style.display     = 'none';
+    document.getElementById('kanbanView').style.display = '';
+    document.getElementById('extraFilters').style.display = 'none';
+    await loadKanban();
+    startKanbanPoll();
+    // Renderiza lista para concluídas (em background)
+    renderList();
     document.getElementById('lastUpdate').textContent='Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     showToast(`${allOS.length} OS carregadas`);
     loadPendentes();
@@ -889,7 +946,22 @@ function updateStats(){
   document.getElementById('statAberta').textContent =allOS.filter(o=>!isConcluida(o)).length;
   document.getElementById('statTotal').textContent  =allOS.length;
 }
-function setFilter(f,el){currentFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderList();}
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const isKanban = f==='aberta';
+  document.getElementById('osList').style.display       = isKanban?'none':'';
+  document.getElementById('kanbanView').style.display   = isKanban?'':'none';
+  document.getElementById('extraFilters').style.display = isKanban?'none':'';
+  if(isKanban){
+    loadKanban();
+    startKanbanPoll();
+  } else {
+    stopKanbanPoll();
+    renderList();
+  }
+}
 
 function filterOS(){
   let list = allOS;
@@ -1133,6 +1205,174 @@ _OS finalizada e disponível no sistema GSB._`;
 
   window.location.href=`https://wa.me/${whats}?text=${encodeURIComponent(msg)}`;
 }
+
+// ── KANBAN ────────────────────────────────────────────────
+let kanbanColunas = [];
+let kanbanCards   = {}; // { id_os: coluna_id }
+let kanbanPollInterval = null;
+let draggedOsId = null;
+
+async function loadKanban(){
+  try{
+    const [rCol, rCard] = await Promise.all([
+      fetch(`${PROXY}/kanban/colunas/${filialSigla}`, {headers:apiHeaders()}),
+      fetch(`${PROXY}/kanban/cards/${filialSigla}`,   {headers:apiHeaders()}),
+    ]);
+    kanbanColunas = await rCol.json();
+    const cards   = await rCard.json();
+    kanbanCards   = {};
+    for(const c of cards) kanbanCards[String(c.id_os)] = c.coluna_id;
+    renderKanban();
+  }catch(e){ console.warn('Kanban load error:', e.message); }
+}
+
+function renderKanban(){
+  const board = document.getElementById('kanbanBoard');
+  const osList = filterOS(); // OS em andamento
+  document.getElementById('kanbanOSCount').textContent = `${osList.length} OS em andamento`;
+
+  board.innerHTML = kanbanColunas.map(col=>{
+    const cardsNaCol = osList.filter(os=>kanbanCards[String(os.idOrdemServico)] === col.id);
+    const semCol     = col === kanbanColunas[0]
+      ? osList.filter(os=>!kanbanCards[String(os.idOrdemServico)])
+      : [];
+    const todos = [...semCol, ...cardsNaCol];
+
+    return `<div class="kb-col" id="col-${col.id}"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="dropCard(event,${col.id})">
+      <div class="kb-col-header">
+        <div class="kb-col-title" ondblclick="editColTitle(this,${col.id})" title="Clique duplo para editar">${col.nome}</div>
+        <span class="kb-col-count">${todos.length}</span>
+        <button class="kb-col-del" onclick="deleteColuna(${col.id},'${col.nome.replace(/'/g,"\\'")}')">✕</button>
+      </div>
+      <div class="kb-cards" id="cards-${col.id}">
+        ${todos.map(os=>renderKbCard(os)).join('')}
+        <div class="kb-drop-zone"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderKbCard(os){
+  const equipNum  = mapEquipNum[String(os.idImobilizado)]||'';
+  const equipNome = ename(os.idImobilizado);
+  const solic     = firstTwo(fname(os.idSolicitante));
+  const exec      = firstTwo(fname(os.idExecutante));
+  const urg       = uc(os.idUrgencia);
+  return `<div class="kb-card ${urg}"
+    draggable="true"
+    ondragstart="dragStart(event,${os.idOrdemServico})"
+    ondragend="dragEnd(event)"
+    onclick="openModal(${os.idOrdemServico})">
+    <div class="kb-card-num">OS #${os.numeroOrs||os.idOrdemServico} ${os.idUrgencia==1?'🔴':''}</div>
+    <div class="kb-card-equip">${equipNum?'Nº '+equipNum+' — ':''}${equipNome}</div>
+    <div class="kb-card-solic">👤 ${solic}${exec&&exec!==solic?' · 👷 '+exec:''}</div>
+  </div>`;
+}
+
+function dragStart(e, idOS){
+  draggedOsId = idOS;
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{
+    const card = e.target; if(card) card.classList.add('dragging');
+  },0);
+}
+function dragEnd(e){
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
+}
+
+async function dropCard(e, colunaId){
+  e.preventDefault();
+  const col = document.getElementById(`col-${colunaId}`);
+  if(col) col.classList.remove('drag-over');
+  if(!draggedOsId) return;
+  // Atualiza local imediatamente
+  kanbanCards[String(draggedOsId)] = colunaId;
+  renderKanban();
+  // Salva no servidor
+  try{
+    await fetch(`${PROXY}/kanban/cards`,{
+      method:'PUT', headers:apiHeaders(),
+      body: JSON.stringify({id_os:String(draggedOsId), filial:filialSigla, coluna_id:colunaId})
+    });
+  }catch(e){ showToast('Erro ao mover card', true); }
+  draggedOsId = null;
+}
+
+// Edição inline do título da coluna
+function editColTitle(el, colunaId){
+  const cur = el.textContent;
+  el.outerHTML = `<input class="kb-col-title-input" id="inp-col-${colunaId}" value="${cur}"
+    onblur="saveColTitle(this,${colunaId})"
+    onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')cancelColTitle(this,'${cur.replace(/'/g,"\\'")}')">`;
+  document.getElementById(`inp-col-${colunaId}`)?.focus();
+}
+async function saveColTitle(inp, colunaId){
+  const nome = inp.value.trim() || inp.defaultValue;
+  // Substitui input pelo div novamente
+  inp.outerHTML = `<div class="kb-col-title" ondblclick="editColTitle(this,${colunaId})" title="Clique duplo para editar">${nome}</div>`;
+  const col = kanbanColunas.find(c=>c.id===colunaId);
+  if(col) col.nome = nome;
+  try{ await fetch(`${PROXY}/kanban/colunas/${colunaId}`,{method:'PUT',headers:apiHeaders(),body:JSON.stringify({nome})}); }
+  catch{ showToast('Erro ao salvar', true); }
+}
+function cancelColTitle(inp, original){
+  inp.outerHTML = `<div class="kb-col-title" ondblclick="editColTitle(this,${inp.id.replace('inp-col-','').replace(/\D/g,'')})" title="Clique duplo para editar">${original}</div>`;
+}
+
+async function deleteColuna(id, nome){
+  if(!confirm(`Excluir coluna "${nome}"? Os cards voltam para a primeira coluna.`)) return;
+  await fetch(`${PROXY}/kanban/colunas/${id}`,{method:'DELETE',headers:apiHeaders()});
+  // Remove do local
+  kanbanColunas = kanbanColunas.filter(c=>c.id!==id);
+  for(const k in kanbanCards){ if(kanbanCards[k]===id) delete kanbanCards[k]; }
+  renderKanban();
+}
+
+function openAddColuna(){
+  document.getElementById('addColNome').value='';
+  document.getElementById('addColunaOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('addColNome').focus(),100);
+}
+function closeAddColuna(){ document.getElementById('addColunaOverlay').classList.remove('open'); }
+
+async function confirmarAddColuna(){
+  const nome = document.getElementById('addColNome').value.trim();
+  if(!nome) return;
+  const ordem = kanbanColunas.length ? Math.max(...kanbanColunas.map(c=>c.ordem))+1 : 0;
+  try{
+    const res  = await fetch(`${PROXY}/kanban/colunas`,{method:'POST',headers:apiHeaders(),body:JSON.stringify({filial:filialSigla,nome,ordem})});
+    const nova = await res.json();
+    kanbanColunas.push(nova);
+    closeAddColuna();
+    renderKanban();
+  }catch{ showToast('Erro ao criar coluna', true); }
+}
+
+// Polling tempo real (5s)
+function startKanbanPoll(){
+  stopKanbanPoll();
+  kanbanPollInterval = setInterval(async()=>{
+    try{
+      const [rCol, rCard] = await Promise.all([
+        fetch(`${PROXY}/kanban/colunas/${filialSigla}`,{headers:apiHeaders()}),
+        fetch(`${PROXY}/kanban/cards/${filialSigla}`,  {headers:apiHeaders()}),
+      ]);
+      const cols  = await rCol.json();
+      const cards = await rCard.json();
+      const newMap = {};
+      for(const c of cards) newMap[String(c.id_os)] = c.coluna_id;
+      // Só re-renderiza se mudou algo
+      const changed = JSON.stringify(cols)!==JSON.stringify(kanbanColunas) ||
+                      JSON.stringify(newMap)!==JSON.stringify(kanbanCards);
+      if(changed){ kanbanColunas=cols; kanbanCards=newMap; renderKanban(); }
+    }catch{}
+  }, 5000);
+}
+function stopKanbanPoll(){ if(kanbanPollInterval){ clearInterval(kanbanPollInterval); kanbanPollInterval=null; } }
 
 // ── MODAL ──────────────────────────────────────────────────
 function switchTab(tabId){
