@@ -438,7 +438,7 @@
     <div class="extra-filter-row" style="grid-template-columns:160px 1fr">
       <div class="extra-filter-item">
         <div class="extra-filter-label">Nº OS</div>
-        <input class="extra-filter-select" id="filterNumOS" type="number" placeholder="Ex: 1990" oninput="renderList()" style="appearance:none;background-image:none">
+        <input class="extra-filter-select" id="filterNumOS" type="text" placeholder="🔍 OS ou Equipamento" oninput="renderList()" style="appearance:none;background-image:none">
       </div>
       <div class="extra-filter-item">
         <div class="extra-filter-label">Funcionário (Exec./Solic./Resp./Aprov.)</div>
@@ -463,10 +463,21 @@
 
   <!-- KANBAN VIEW -->
   <div id="kanbanView" style="display:none">
-    <div style="padding:8px 20px 10px;display:flex;align-items:center;justify-content:space-between">
-      <span style="font-size:13px;color:var(--text3)" id="kanbanOSCount"></span>
-      <button onclick="openAddColuna()" style="background:none;border:1.5px dashed var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;">+ Coluna</button>
+    <div style="padding:8px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <!-- Filtros do Kanban -->
+      <div style="display:flex;gap:8px;flex:1;min-width:0">
+        <div style="flex:1;min-width:0">
+          <input class="extra-filter-select" id="filterNumOSKanban" type="text" placeholder="🔍 OS, Nº Imobilizado ou Equipamento" oninput="renderKanban()" style="width:100%;appearance:none;background-image:none">
+        </div>
+        <div style="flex:1;min-width:0">
+          <select class="extra-filter-select" id="filterFuncionarioKanban" onchange="renderKanban()" style="width:100%">
+            <option value="">👤 Todos os funcionários</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="openAddColuna()" style="background:none;border:1.5px dashed var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;flex-shrink:0">+ Coluna</button>
     </div>
+    <div style="padding:0 20px 6px;font-size:12px;color:var(--text3)" id="kanbanOSCount"></div>
     <div id="kanbanBoard" style="display:flex;gap:12px;overflow-x:auto;padding:0 20px 20px;min-height:60vh;scrollbar-width:thin;align-items:flex-start;"></div>
   </div>
 </div>
@@ -930,6 +941,7 @@ async function loadAll(){
     document.getElementById('osList').style.display     = 'none';
     document.getElementById('kanbanView').style.display = '';
     document.getElementById('extraFilters').style.display = 'none';
+    populateKanbanFuncFilter();
     await loadKanban();
     startKanbanPoll();
     // Renderiza lista para concluídas (em background)
@@ -965,6 +977,7 @@ function setFilter(f,el){
   document.getElementById('kanbanView').style.display   = isKanban?'':'none';
   document.getElementById('extraFilters').style.display = isKanban?'none':'';
   if(isKanban){
+    populateKanbanFuncFilter();
     loadKanban();
     startKanbanPoll();
   } else {
@@ -981,8 +994,15 @@ function filterOS(){
   else if(currentFilter==='concluida') list = list.filter(o=>isConcluida(o));
   // Extra filters
   const filterFunc = document.getElementById('filterFuncionario')?.value || '';
-  const filterNum  = document.getElementById('filterNumOS')?.value.trim() || '';
-  if(filterNum) list = list.filter(o=>String(o.numeroOrs||o.idOrdemServico).includes(filterNum));
+  const filterNum  = (document.getElementById('filterNumOS')?.value||'').trim().toLowerCase();
+  if(filterNum){
+    list = list.filter(o=>{
+      const num   = String(o.numeroOrs||o.idOrdemServico);
+      const equip = String(mapEquipNum[String(o.idImobilizado)]||'');
+      const nome  = ename(o.idImobilizado).toLowerCase();
+      return num.includes(filterNum) || equip.includes(filterNum) || nome.includes(filterNum);
+    });
+  }
   if(filterFunc) list = list.filter(o=>
     String(o.idExecutante)  === filterFunc ||
     String(o.idSolicitante) === filterFunc ||
@@ -1224,23 +1244,63 @@ let kanbanPollInterval = null;
 let draggedOsId    = null;
 let dragOverOsId   = null; // card being hovered over (for vertical reorder)
 
+function populateKanbanFuncFilter(){
+  const sel = document.getElementById('filterFuncionarioKanban');
+  if(!sel) return;
+  const osList = filterOSKanban();
+  const allIds = [...new Set([
+    ...osList.map(o=>o.idExecutante),
+    ...osList.map(o=>o.idSolicitante),
+    ...osList.map(o=>o.idResponsavel),
+    ...osList.map(o=>o.idAprovador),
+  ].filter(Boolean))];
+  const sorted = allIds.map(id=>({id,nome:fname(id)})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  sel.innerHTML = '<option value="">👤 Todos os funcionários</option>' +
+    sorted.map(({id,nome})=>`<option value="${id}">${nome}</option>`).join('');
+}
+
+function filterOSKanban(){
+  let list = filterOS(); // já filtra aberta/concluída
+  const numOS  = (document.getElementById('filterNumOSKanban')?.value||'').trim().toLowerCase();
+  const funcId = document.getElementById('filterFuncionarioKanban')?.value||'';
+  if(numOS){
+    list = list.filter(os=>{
+      const num   = String(os.numeroOrs||os.idOrdemServico);
+      const equip = String(mapEquipNum[String(os.idImobilizado)]||'');
+      const nome  = ename(os.idImobilizado).toLowerCase();
+      return num.includes(numOS) || equip.includes(numOS) || nome.includes(numOS);
+    });
+  }
+  if(funcId){
+    list = list.filter(os=>
+      String(os.idExecutante)===funcId || String(os.idSolicitante)===funcId ||
+      String(os.idResponsavel)===funcId || String(os.idAprovador)===funcId
+    );
+  }
+  return list;
+}
+
 async function loadKanban(){
   try{
     const [rCol, rCard] = await Promise.all([
-      fetch(PROXY+'/kanban/colunas/${filialSigla}', {headers:apiHeaders()}),
-      fetch(PROXY+'/kanban/cards/${filialSigla}',   {headers:apiHeaders()}),
+      fetch(PROXY+'/kanban/colunas/'+filialSigla, {headers:apiHeaders()}),
+      fetch(PROXY+'/kanban/cards/'+filialSigla,   {headers:apiHeaders()}),
     ]);
     kanbanColunas = await rCol.json();
     const cards   = await rCard.json();
     kanbanCards   = {};
-    for(const c of cards) kanbanCards[String(c.id_os)] = { colunaId: Number(c.coluna_id), ordem: c.ordem||0 };
+    kanbanOrdem   = {};
+    for(const c of cards){
+      kanbanCards[String(c.id_os)] = { colunaId: Number(c.coluna_id), ordem: c.ordem||0 };
+    }
+    populateKanbanFuncFilter();
     renderKanban();
   }catch(e){ console.warn('Kanban load error:', e.message); }
 }
 
 function renderKanban(){
   const board = document.getElementById('kanbanBoard');
-  const osList = filterOS(); // OS em andamento
+  const osList = filterOSKanban();
   document.getElementById('kanbanOSCount').textContent = `${osList.length} OS em andamento`;
 
   board.innerHTML = kanbanColunas.map((col, idx)=>{
@@ -1342,7 +1402,7 @@ function dragOverCard(e, targetOsId, colunaId){
   if(draggedOsId === targetOsId) return;
   dragOverOsId = targetOsId;
   // Reordena localmente para preview visual
-  const osList = filterOS();
+  const osList = filterOSKanban();
   const colCards = osList.filter(os=>{
     const entry = kanbanCards[String(os.idOrdemServico)];
     const cId = entry ? entry.colunaId : null;
@@ -1372,7 +1432,7 @@ async function dropCard(e, colunaId){
   else kanbanCards[String(draggedOsId)].colunaId = Number(colunaId);
 
   // Recalcula ordem dos cards na coluna destino
-  const osList = filterOS();
+  const osList = filterOSKanban();
   const colCards = osList.filter(os=>{
     const e2 = kanbanCards[String(os.idOrdemServico)];
     const cId = e2 ? e2.colunaId : null;
@@ -1399,7 +1459,7 @@ async function dropCard(e, colunaId){
 
 // Mover card verticalmente com botões ▲▼
 async function moverCard(idOS, colunaId, delta){
-  const osList = filterOS();
+  const osList = filterOSKanban();
   const colCards = osList.filter(os=>{
     const e = kanbanCards[String(os.idOrdemServico)];
     const cId = e ? e.colunaId : null;
@@ -1538,8 +1598,8 @@ function startKanbanPoll(){
   kanbanPollInterval = setInterval(async()=>{
     try{
       const [rCol, rCard] = await Promise.all([
-        fetch(PROXY+'/kanban/colunas/${filialSigla}',{headers:apiHeaders()}),
-        fetch(PROXY+'/kanban/cards/${filialSigla}',  {headers:apiHeaders()}),
+        fetch(PROXY+'/kanban/colunas/'+filialSigla,{headers:apiHeaders()}),
+        fetch(PROXY+'/kanban/cards/'+filialSigla,  {headers:apiHeaders()}),
       ]);
       const cols  = await rCol.json();
       const cards = await rCard.json();
