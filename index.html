@@ -625,6 +625,12 @@
 </div>
 
 <!-- OS DETAIL MODAL -->
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(2px)">
+  <div class="loading-spinner" style="width:48px;height:48px;border-width:4px"></div>
+  <div id="loadingLabel" style="font-size:15px;color:var(--text2);font-weight:500">Carregando...</div>
+</div>
+
 <!-- KANBAN ADD COLUNA -->
 <div class="add-col-overlay" id="addColunaOverlay" onclick="if(event.target===this)closeAddColuna()">
   <div class="add-col-box">
@@ -883,13 +889,25 @@ async function apiFetchSeq(endpoints){
   for(const ep of endpoints){results.push(await apiFetch(ep));await new Promise(r=>setTimeout(r,150));}
   return results;
 }
-function setLoadingLabel(txt){const el=document.getElementById('loadingLabel');if(el)el.textContent=txt;}
+function setLoadingLabel(txt){
+  const el=document.getElementById('loadingLabel');
+  if(el) el.textContent=txt;
+}
+
+function showLoading(){
+  document.getElementById('loadingOverlay').style.display='flex';
+}
+function hideLoading(){
+  document.getElementById('loadingOverlay').style.display='none';
+}
 
 // ── LOAD ALL ───────────────────────────────────────────────
 async function loadAll(){
   const btn=document.getElementById('refreshBtn'),icon=document.getElementById('refreshIcon');
-  btn.classList.add('loading');icon.classList.add('spin');osProdCache={};osItemsCache={};
-  document.getElementById('osList').innerHTML=`<div class="loading-box"><div class="loading-spinner"></div><div class="loading-label" id="loadingLabel">Carregando...</div></div>`;
+  btn.classList.add('loading');icon.classList.add('spin');
+  osProdCache={};osItemsCache={};
+  showLoading();
+  setLoadingLabel('Carregando...');
   try{
     setLoadingLabel('Buscando cadastros...');
     const cadCache = loadCache(CAD_CACHE_KEY);
@@ -952,7 +970,11 @@ async function loadAll(){
   }catch(e){
     showToast('Erro: '+e.message,true);
     document.getElementById('osList').innerHTML=`<div class="state-box"><div class="state-icon">⚠️</div><div class="state-title">Erro de conexão</div><div class="state-sub">${e.message}</div></div>`;
-  }finally{btn.classList.remove('loading');icon.classList.remove('spin');}
+  }finally{
+    btn.classList.remove('loading');
+    icon.classList.remove('spin');
+    hideLoading();
+  }
 }
 
 // ── STATS / FILTER / RENDER ────────────────────────────────
