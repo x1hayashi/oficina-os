@@ -1240,12 +1240,13 @@ function renderKanban(){
   const osList = filterOS(); // OS em andamento
   document.getElementById('kanbanOSCount').textContent = `${osList.length} OS em andamento`;
 
-  board.innerHTML = kanbanColunas.map(col=>{
-    const cardsNaCol = osList.filter(os=>kanbanCards[String(os.idOrdemServico)] === Number(col.id));
-    const semCol     = col === kanbanColunas[0]
-      ? osList.filter(os=>!kanbanCards[String(os.idOrdemServico)])
-      : [];
-    const todos = [...semCol, ...cardsNaCol];
+  board.innerHTML = kanbanColunas.map((col, idx)=>{
+    const cardsNaCol = osList.filter(os=>{
+      const colunaId = kanbanCards[String(os.idOrdemServico)];
+      // Se não tem coluna definida, vai para a primeira coluna (Pendente)
+      if(colunaId === undefined || colunaId === null) return idx === 0;
+      return Number(colunaId) === Number(col.id);
+    });
 
     return `<div class="kb-col" id="col-${col.id}"
         ondragover="event.preventDefault();this.classList.add('drag-over')"
@@ -1253,11 +1254,11 @@ function renderKanban(){
         ondrop="dropCard(event,${col.id})">
       <div class="kb-col-header">
         <div class="kb-col-title" ondblclick="editColTitle(this,${col.id})" title="Clique duplo para editar">${col.nome}</div>
-        <span class="kb-col-count">${todos.length}</span>
+        <span class="kb-col-count">${cardsNaCol.length}</span>
         <button class="kb-col-del" onclick="deleteColuna(${col.id},'${col.nome.replace(/'/g,"\\'")}')">✕</button>
       </div>
       <div class="kb-cards" id="cards-${col.id}">
-        ${todos.map(os=>renderKbCard(os)).join('')}
+        ${cardsNaCol.map(os=>renderKbCard(os)).join('')}
         <div class="kb-drop-zone"></div>
       </div>
     </div>`;
