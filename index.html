@@ -1473,7 +1473,7 @@ async function dropCard(e, colunaId){
     }));
     await fetch(PROXY+'/kanban/cards/reorder',{
       method:'PUT', headers:apiHeaders(),
-      body: JSON.stringify({cards:payload})
+      body: JSON.stringify({filial:filialSigla, cards:payload})
     });
   }catch{ showToast('Erro ao mover card', true); }
   draggedOsId = null;
@@ -1505,7 +1505,7 @@ async function moverCard(idOS, colunaId, delta){
   try{
     await fetch(PROXY+'/kanban/cards/reorder',{
       method:'PUT', headers:apiHeaders(),
-      body: JSON.stringify({cards:colCards.map((os,i)=>({
+      body: JSON.stringify({filial:filialSigla, cards:colCards.map((os,i)=>({
         id_os:String(os.idOrdemServico), filial:filialSigla,
         coluna_id:Number(colunaId), ordem:i
       }))})
