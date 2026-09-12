@@ -1422,34 +1422,59 @@ function touchStart(e, idOS){
   touchDragEl    = e.currentTarget;
 }
 
+let touchScrollRAF = null;
+
 function touchMove(e){
   const dx = e.touches[0].clientX - touchStartX;
   const dy = e.touches[0].clientY - touchStartY;
   if(!touchMoved && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
   touchMoved = true;
-  e.preventDefault(); // impede scroll durante drag
+  e.preventDefault();
+
+  const tx = e.touches[0].clientX;
+  const ty = e.touches[0].clientY;
 
   if(!touchGhost){
-    // Cria ghost visual
     touchGhost = touchDragEl.cloneNode(true);
-    touchGhost.style.cssText = 'position:fixed;z-index:999;opacity:.85;pointer-events:none;width:'+touchDragEl.offsetWidth+'px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:scale(1.03);';
+    touchGhost.style.cssText = 'position:fixed;z-index:999;opacity:.85;pointer-events:none;width:'+touchDragEl.offsetWidth+'px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:scale(1.03);transition:none;';
     document.body.appendChild(touchGhost);
     touchDragEl.style.opacity='0.3';
   }
 
-  // Move ghost com o dedo
-  touchGhost.style.left = (e.touches[0].clientX - touchDragEl.offsetWidth/2) + 'px';
-  touchGhost.style.top  = (e.touches[0].clientY - 30) + 'px';
+  touchGhost.style.left = (tx - touchDragEl.offsetWidth/2) + 'px';
+  touchGhost.style.top  = (ty - 30) + 'px';
+
+  // Auto-scroll contínuo com rAF
+  if(touchScrollRAF) cancelAnimationFrame(touchScrollRAF);
+  const board = document.getElementById('kanbanBoard');
+  const boardRect = board.getBoundingClientRect();
+  const edgeH = 80, edgeV = 100;
+  const winH  = window.innerHeight;
+
+  let scrollH = 0, scrollV = 0;
+  if(tx < boardRect.left + edgeH)       scrollH = -Math.ceil((edgeH-(tx-boardRect.left))*0.5);
+  else if(tx > boardRect.right - edgeH) scrollH =  Math.ceil((edgeH-(boardRect.right-tx))*0.5);
+  if(ty < edgeV)                         scrollV = -Math.ceil((edgeV-ty)*0.5);
+  else if(ty > winH - edgeV)             scrollV =  Math.ceil((edgeV-(winH-ty))*0.5);
+
+  if(scrollH || scrollV){
+    function doScroll(){
+      board.scrollLeft += scrollH;
+      window.scrollBy(0, scrollV);
+      touchScrollRAF = requestAnimationFrame(doScroll);
+    }
+    touchScrollRAF = requestAnimationFrame(doScroll);
+  }
 
   // Destaca coluna sob o dedo
-  touchGhost.style.pointerEvents='none';
-  const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+  const el = document.elementFromPoint(tx, ty);
   document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
   const col = el?.closest('.kb-col');
   if(col) col.classList.add('drag-over');
 }
 
 async function touchEnd(e, idOS){
+  if(touchScrollRAF){ cancelAnimationFrame(touchScrollRAF); touchScrollRAF=null; }
   if(touchGhost){ touchGhost.remove(); touchGhost=null; }
   if(touchDragEl) touchDragEl.style.opacity='';
   document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
