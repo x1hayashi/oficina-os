@@ -1258,6 +1258,168 @@ _OS finalizada e disponível no sistema GSB._`;
   window.location.href=`https://wa.me/${whats}?text=${encodeURIComponent(msg)}`;
 }
 
+// ── ETIQUETA IMPRESSÃO ────────────────────────────────────
+function imprimirEtiqueta(idOS){
+  const os = allOS.find(o=>o.idOrdemServico==idOS);
+  if(!os) return;
+
+  const items     = osItemsCache[String(idOS)]||[];
+  const equipNum  = mapEquipNum[String(os.idImobilizado)]||String(os.idImobilizado||'');
+  const equipNome = ename(os.idImobilizado);
+  const solicit   = fname(os.idSolicitante);
+  const executor  = fname(os.idExecutante);
+  const osNum     = os.numeroOrs||os.idOrdemServico;
+  const servico   = items.map(it=>it.servicoIdentificado).filter(Boolean).join(' / ')
+                    || items.map(it=>it.servicoRealizar).filter(Boolean).join(' / ')
+                    || os.observacao || '–';
+
+  // Data de solicitação: dataInicio do OS
+  const rawData = os.dataInicio||'';
+  let dataSolicit = '–';
+  if(rawData){
+    const d = new Date(rawData);
+    if(!isNaN(d)) dataSolicit = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  }
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page {
+    size: 50mm 50mm;
+    margin: 0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 50mm;
+    height: 50mm;
+    font-family: 'Arial Narrow', Arial, sans-serif;
+    color: #000;
+    background: #fff;
+    overflow: hidden;
+  }
+  .label {
+    width: 50mm;
+    height: 50mm;
+    padding: 2.5mm 2.5mm 2mm;
+    display: flex;
+    flex-direction: column;
+    border: 0.3mm solid #000;
+  }
+  .imob {
+    font-size: 11mm;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .divider {
+    width: 100%;
+    height: 0.3mm;
+    background: #000;
+    margin: 1.2mm 0;
+    flex-shrink: 0;
+  }
+  .divider-thin {
+    width: 100%;
+    height: 0.15mm;
+    background: #000;
+    margin: 1mm 0;
+    flex-shrink: 0;
+  }
+  .equip {
+    font-size: 3mm;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .os-num {
+    font-size: 3.2mm;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 0.5mm;
+  }
+  .fields {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8mm;
+    overflow: hidden;
+  }
+  .field {
+    display: flex;
+    gap: 1mm;
+    align-items: flex-start;
+    line-height: 1.25;
+  }
+  .fkey {
+    font-size: 1.8mm;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    min-width: 10mm;
+    flex-shrink: 0;
+    padding-top: 0.2mm;
+  }
+  .fval {
+    font-size: 2.4mm;
+    font-weight: 500;
+    word-break: break-word;
+  }
+  .footer {
+    margin-top: auto;
+    padding-top: 1mm;
+    border-top: 0.15mm solid #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .fdate { font-size: 2.5mm; font-weight: 600; }
+  .flogo { font-size: 2mm; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="label">
+  <div class="imob">${equipNum}</div>
+  <div class="divider"></div>
+  <div class="equip">${equipNome}</div>
+  <div class="os-num">OS #${osNum}</div>
+  <div class="divider-thin"></div>
+  <div class="fields">
+    <div class="field">
+      <span class="fkey">Serviço</span>
+      <span class="fval">${servico}</span>
+    </div>
+    <div class="field">
+      <span class="fkey">Solicit.</span>
+      <span class="fval">${solicit}</span>
+    </div>
+    <div class="field">
+      <span class="fkey">Executor</span>
+      <span class="fval">${executor}</span>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="fdate">Solicitado: ${dataSolicit}</span>
+    <span class="flogo">Hayashi</span>
+  </div>
+</div>
+<script>window.onload=()=>{ window.print(); window.onafterprint=()=>window.close(); };<\/script>
+</body>
+</html>`;
+
+  const win = window.open('','_blank','width=250,height=250');
+  if(!win){ showToast('Permita pop-ups para imprimir a etiqueta', true); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
 // ── KANBAN ────────────────────────────────────────────────
 let kanbanColunas  = [];
 let kanbanCards    = {}; // { id_os: coluna_id }
@@ -1854,13 +2016,17 @@ function openModal(id){
       </div>
     </div>
 
-    ${!isConcluida(os)?`
-    <div style="margin-top:16px;padding-top:16px;border-top:1.5px solid var(--border);">
+    <div style="margin-top:16px;padding-top:16px;border-top:1.5px solid var(--border);display:flex;gap:10px;">
+      ${!isConcluida(os)?`
       <button onclick="avisarConclusao(${os.idOrdemServico})"
-        style="width:100%;padding:14px;border-radius:10px;border:none;background:var(--green);color:#fff;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        style="flex:1;padding:14px;border-radius:10px;border:none;background:var(--green);color:#fff;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
         ✓ Avisar Conclusão via WhatsApp
+      </button>`:''}
+      <button onclick="imprimirEtiqueta(${os.idOrdemServico})"
+        style="flex:0 0 auto;padding:14px 18px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--text1);font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
+        🖨 Etiqueta
       </button>
-    </div>`:''}
+    </div>
   `;
   document.getElementById('modalOverlay').classList.add('open');
 }
