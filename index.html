@@ -996,8 +996,6 @@ function clearExtraFilters(){
 function makeOSCard(os){
   const prods=osProdCache[String(os.idOrdemServico)]||[];
   const items=osItemsCache[String(os.idOrdemServico)]||[];
-    const prods=osProdCache[String(os.idOrdemServico)]||[];
-    const items=osItemsCache[String(os.idOrdemServico)]||[];
     const equipNome=os.idImobilizado?ename(os.idImobilizado):'';
     const hoje=new Date();
     const prazoDate=os.dataEntrega?new Date(String(os.dataEntrega).replace(' ','T').split('.')[0]):null;
