@@ -1952,8 +1952,20 @@ function openModal(id){
   }
 
   document.getElementById('modalContent').innerHTML=`
-    <div class="modal-title">OS #${os.numeroOrs||os.idOrdemServico}</div>
-    <div class="modal-subtitle">ID interno: ${os.idOrdemServico}</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+      <div>
+        <div class="modal-title">OS #${os.numeroOrs||os.idOrdemServico}</div>
+        <div class="modal-subtitle">ID interno: ${os.idOrdemServico}</div>
+      </div>
+      <button onclick="imprimirEtiqueta(${os.idOrdemServico})" title="Imprimir etiqueta"
+        style="flex-shrink:0;margin-left:12px;margin-top:2px;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9"/>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+          <rect x="6" y="14" width="12" height="8"/>
+        </svg>
+      </button>
+    </div>
     <div class="modal-tabs">
       <div class="modal-tab active" id="tabn-info" onclick="switchTab('info')">Informações</div>
       <div class="modal-tab" id="tabn-resp" onclick="switchTab('resp')">Responsáveis</div>
@@ -2016,17 +2028,14 @@ function openModal(id){
       </div>
     </div>
 
-    <div style="margin-top:16px;padding-top:16px;border-top:1.5px solid var(--border);display:flex;gap:10px;">
-      ${!isConcluida(os)?`
+    ${!isConcluida(os)?`
+    <div style="margin-top:16px;padding-top:16px;border-top:1.5px solid var(--border);">
       <button onclick="avisarConclusao(${os.idOrdemServico})"
-        style="flex:1;padding:14px;border-radius:10px;border:none;background:var(--green);color:#fff;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        style="width:100%;padding:14px;border-radius:10px;border:none;background:var(--green);color:#fff;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
         ✓ Avisar Conclusão via WhatsApp
-      </button>`:''}
-      <button onclick="imprimirEtiqueta(${os.idOrdemServico})"
-        style="flex:0 0 auto;padding:14px 18px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--text1);font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
-        🖨 Etiqueta
       </button>
-    </div>
+    </div>`:''}
+
   `;
   document.getElementById('modalOverlay').classList.add('open');
 }
