@@ -227,39 +227,6 @@
   .phone-prefix{padding:12px 10px 12px 14px;font-size:15px;color:var(--text2);font-weight:500;background:var(--surface2);border-right:1.5px solid var(--border);flex-shrink:0}
   .phone-input{border:none!important;border-radius:0!important;background:transparent!important;flex:1;padding:12px 14px 12px 10px;outline:none;font-size:15px}
   /* BIOMETRIC */
-  /* ── KANBAN ─────────────────────────────────────────────── */
-  .kb-col{flex-shrink:0;width:280px;background:var(--surface2);border-radius:12px;padding:10px;border:1.5px solid var(--border)}
-  .kb-col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px}
-  .kb-col-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em;flex:1;cursor:pointer;padding:4px 6px;border-radius:6px}
-  .kb-col-title:hover{background:var(--border)}
-  .kb-col-title-input{font-size:13px;font-weight:700;color:var(--text);background:var(--surface);border:1.5px solid var(--accent);border-radius:6px;padding:4px 6px;outline:none;width:100%}
-  .kb-col-count{font-size:11px;color:var(--text3);background:var(--border);padding:2px 7px;border-radius:10px;flex-shrink:0}
-  .kb-col-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 5px;border-radius:4px;flex-shrink:0;position:relative;overflow:hidden;}
-  .kb-col-del:hover{color:var(--red)}
-  .kb-col-del-progress{position:absolute;bottom:0;left:0;height:2px;background:var(--red);width:0%;transition:width 1s linear;border-radius:2px}
-  .kb-cards{min-height:80px;display:flex;flex-direction:column;gap:8px}
-  .kb-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;cursor:grab;transition:box-shadow .15s,transform .15s;border-left:3px solid var(--border);user-select:none;-webkit-user-select:none;touch-action:none}
-  .kb-card:active{cursor:grabbing}
-  .kb-card.dragging{opacity:.5;transform:scale(.97);box-shadow:0 4px 16px rgba(0,0,0,.15)}
-  .kb-card.urgente{border-left-color:var(--red)}
-  .kb-card.normal{border-left-color:var(--yellow)}
-  .kb-card.baixa{border-left-color:var(--green)}
-  .kb-card-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);margin-bottom:3px}
-  .kb-card-equip{font-size:11px;color:var(--text3);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .kb-card-solic{font-size:12px;color:var(--text2)}
-  .kb-drop-zone{border:2px dashed var(--accent);border-radius:10px;min-height:60px;opacity:0;transition:opacity .2s;pointer-events:none}
-  .kb-drop-zone.active{opacity:1;pointer-events:auto}
-  .kb-col.drag-over .kb-drop-zone{opacity:1}
-  @media(min-width:768px){.kb-col{width:300px}}
-
-  /* ── ADD COLUNA MODAL ───────────────────────────────────── */
-  .add-col-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;padding:24px}
-  .add-col-overlay.open{display:flex}
-  .add-col-box{background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:340px;box-shadow:0 4px 24px rgba(0,0,0,.15)}
-
-  /* ── SCROLLBAR KANBAN ───────────────────────────────────── */
-  #kanbanBoard::-webkit-scrollbar{height:6px}
-  #kanbanBoard::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
   @media (min-width: 768px){
     body { max-width: 1200px; margin: 0 auto; }
 
@@ -461,26 +428,7 @@
   </div>
   <div class="os-list" id="osList" style="display:none"></div>
 
-  <!-- KANBAN VIEW -->
-  <div id="kanbanView" style="display:none">
-    <div style="padding:8px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <!-- Filtros do Kanban -->
-      <div style="display:flex;gap:8px;flex:1;min-width:0">
-        <div style="flex:1;min-width:0">
-          <input class="extra-filter-select" id="filterNumOSKanban" type="text" placeholder="🔍 OS, Nº Imobilizado ou Equipamento" oninput="renderKanban()" style="width:100%;appearance:none;background-image:none">
-        </div>
-        <div style="flex:1;min-width:0">
-          <select class="extra-filter-select" id="filterFuncionarioKanban" onchange="renderKanban()" style="width:100%">
-            <option value="">👤 Todos os funcionários</option>
-          </select>
-        </div>
-      </div>
-      <button onclick="openAddColuna()" style="background:none;border:1.5px dashed var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;flex-shrink:0">+ Coluna</button>
-    </div>
-    <div style="padding:0 20px 6px;font-size:12px;color:var(--text3)" id="kanbanOSCount"></div>
-    <div id="kanbanBoard" style="display:flex;gap:12px;overflow-x:auto;padding:0 20px 20px;min-height:60vh;scrollbar-width:thin;align-items:flex-start;"></div>
   </div>
-</div>
 
 <!-- TAB PENDENTES -->
 <div id="panelPendentes" style="display:none">
@@ -629,19 +577,6 @@
 <div id="loadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:300;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(2px)">
   <div class="loading-spinner" style="width:48px;height:48px;border-width:4px"></div>
   <div id="loadingLabel" style="font-size:15px;color:var(--text2);font-weight:500">Carregando...</div>
-</div>
-
-<!-- KANBAN ADD COLUNA -->
-<div class="add-col-overlay" id="addColunaOverlay" onclick="if(event.target===this)closeAddColuna()">
-  <div class="add-col-box">
-    <div style="font-size:17px;font-weight:600;margin-bottom:16px">Nova Coluna</div>
-    <div class="form-field">
-      <div class="form-label">Nome da coluna</div>
-      <input class="form-input" id="addColNome" placeholder="Ex: Em Revisão" type="text" onkeydown="if(event.key==='Enter')confirmarAddColuna()">
-    </div>
-    <button class="btn-primary" onclick="confirmarAddColuna()">Adicionar</button>
-    <button class="btn-ghost" onclick="closeAddColuna()">Cancelar</button>
-  </div>
 </div>
 
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
@@ -864,8 +799,8 @@ function switchMainTab(tab){
   document.getElementById('panelOS').style.display       = tab==='os'        ? '' : 'none';
   document.getElementById('panelPendentes').style.display= tab==='pendentes' ? '' : 'none';
   document.getElementById('panelAdmin').style.display    = tab==='admin'     ? '' : 'none';
-  if(tab==='pendentes') { renderPendentes(); stopKanbanPoll(); }
-  if(tab==='os' && currentFilter==='aberta') { loadKanban(); startKanbanPoll(); }
+  if(tab==='pendentes') { renderPendentes(); }
+  if(tab==='os') { renderList(); }
 }
 
 // ── API ────────────────────────────────────────────────────
@@ -955,14 +890,8 @@ async function loadAll(){
     for(const p of allOSProd){const oid=String(p.idOrdemServico);if(osIds.has(oid)){if(!osProdCache[oid])osProdCache[oid]=[];osProdCache[oid].push(p);}}
     for(const it of allOSItems){const oid=String(it.idOrdemServico);if(osIds.has(oid)){if(!osItemsCache[oid])osItemsCache[oid]=[];osItemsCache[oid].push(it);}}
     updateStats();
-    // Inicia no modo kanban (Em andamento)
-    document.getElementById('osList').style.display     = 'none';
-    document.getElementById('kanbanView').style.display = '';
-    document.getElementById('extraFilters').style.display = 'none';
-    populateKanbanFuncFilter();
-    await loadKanban();
-    startKanbanPoll();
-    // Renderiza lista para concluídas (em background)
+    document.getElementById('osList').style.display = '';
+    document.getElementById('extraFilters').style.display = '';
     renderList();
     document.getElementById('lastUpdate').textContent='Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     showToast(`${allOS.length} OS carregadas`);
@@ -994,18 +923,9 @@ function setFilter(f,el){
   currentFilter=f;
   document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
-  const isKanban = f==='aberta';
-  document.getElementById('osList').style.display       = isKanban?'none':'';
-  document.getElementById('kanbanView').style.display   = isKanban?'':'none';
-  document.getElementById('extraFilters').style.display = isKanban?'none':'';
-  if(isKanban){
-    populateKanbanFuncFilter();
-    loadKanban();
-    startKanbanPoll();
-  } else {
-    stopKanbanPoll();
-    renderList();
-  }
+  document.getElementById('osList').style.display = '';
+  document.getElementById('extraFilters').style.display = '';
+  renderList();
 }
 
 function filterOS(){
@@ -1073,12 +993,9 @@ function clearExtraFilters(){
   renderList();
 }
 
-function renderList(){
-  const list=filterOS();
-  document.getElementById('sectionCount').textContent=`${list.length} Ordem${list.length!==1?'s':''} de Serviço`;
-  if(!list.length){document.getElementById('osList').innerHTML=`<div class="state-box"><div class="state-icon">✅</div><div class="state-title">Nenhuma OS</div></div>`;return;}
-  const sorted=[...list].sort((a,b)=>new Date(b.dataInicio)-new Date(a.dataInicio));
-  document.getElementById('osList').innerHTML=sorted.map(os=>{
+function makeOSCard(os){
+  const prods=osProdCache[String(os.idOrdemServico)]||[];
+  const items=osItemsCache[String(os.idOrdemServico)]||[];
     const prods=osProdCache[String(os.idOrdemServico)]||[];
     const items=osItemsCache[String(os.idOrdemServico)]||[];
     const equipNome=os.idImobilizado?ename(os.idImobilizado):'';
@@ -1115,7 +1032,40 @@ function renderList(){
       </div>
       ${prods.length>0?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--accent);font-weight:500;">🔩 ${prods.length} produto${prods.length>1?'s':''} utilizado${prods.length>1?'s':''}</div>`:''}
     </div>`;
-  }).join('');
+}
+
+function renderList(){
+  const list=filterOS();
+  document.getElementById('sectionCount').textContent=`${list.length} Ordem${list.length!==1?'s':''} de Serviço`;
+  if(!list.length){document.getElementById('osList').innerHTML=`<div class="state-box"><div class="state-icon">✅</div><div class="state-title">Nenhuma OS</div></div>`;return;}
+  const sorted=[...list].sort((a,b)=>new Date(b.dataInicio)-new Date(a.dataInicio));
+  if(currentFilter==='aberta'){
+    // Agrupa por executante
+    const grupos={};
+    sorted.forEach(os=>{
+      const key=String(os.idExecutante||'');
+      if(!grupos[key]) grupos[key]=[];
+      grupos[key].push(os);
+    });
+    // Ordena grupos: executantes com nome primeiro, sem executante por último
+    const keys=Object.keys(grupos).sort((a,b)=>{
+      if(!a) return 1; if(!b) return -1;
+      return fname(a).localeCompare(fname(b),'pt-BR');
+    });
+    document.getElementById('osList').innerHTML=keys.map(key=>{
+      const nome=key?fname(key):'Sem executante';
+      const cards=grupos[key].map(makeOSCard).join('');
+      return `<div style="margin-bottom:4px">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 6px;border-bottom:1.5px solid var(--border);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+          <span>👤 ${nome}</span>
+          <span style="font-weight:400;font-size:11px;background:var(--border);padding:1px 7px;border-radius:10px;">${grupos[key].length}</span>
+        </div>
+        ${cards}
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('osList').innerHTML=sorted.map(makeOSCard).join('');
+  }
 }
 
 // ── HORA PICKER (drum roller iOS style) ───────────────────
@@ -1420,488 +1370,6 @@ function imprimirEtiqueta(idOS){
   win.document.close();
 }
 
-// ── KANBAN ────────────────────────────────────────────────
-let kanbanColunas  = [];
-let kanbanCards    = {}; // { id_os: coluna_id }
-let kanbanOrdem    = {}; // { id_os: ordem }
-let kanbanPollInterval = null;
-let draggedOsId    = null;
-let dragOverOsId   = null; // card being hovered over (for vertical reorder)
-
-function populateKanbanFuncFilter(){
-  const sel = document.getElementById('filterFuncionarioKanban');
-  if(!sel) return;
-  const osList = filterOSKanban();
-  const allIds = [...new Set([
-    ...osList.map(o=>o.idExecutante),
-    ...osList.map(o=>o.idSolicitante),
-    ...osList.map(o=>o.idResponsavel),
-    ...osList.map(o=>o.idAprovador),
-  ].filter(Boolean))];
-  const sorted = allIds.map(id=>({id,nome:fname(id)})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-  sel.innerHTML = '<option value="">👤 Todos os funcionários</option>' +
-    sorted.map(({id,nome})=>`<option value="${id}">${nome}</option>`).join('');
-}
-
-function filterOSKanban(){
-  let list = filterOS(); // já filtra aberta/concluída
-  const numOS  = (document.getElementById('filterNumOSKanban')?.value||'').trim().toLowerCase();
-  const funcId = document.getElementById('filterFuncionarioKanban')?.value||'';
-  if(numOS){
-    list = list.filter(os=>{
-      const num   = String(os.numeroOrs||os.idOrdemServico);
-      const equip = String(mapEquipNum[String(os.idImobilizado)]||'');
-      const nome  = ename(os.idImobilizado).toLowerCase();
-      return num.includes(numOS) || equip.includes(numOS) || nome.includes(numOS);
-    });
-  }
-  if(funcId){
-    list = list.filter(os=>
-      String(os.idExecutante)===funcId || String(os.idSolicitante)===funcId ||
-      String(os.idResponsavel)===funcId || String(os.idAprovador)===funcId
-    );
-  }
-  return list;
-}
-
-async function loadKanban(){
-  try{
-    const [rCol, rCard] = await Promise.all([
-      fetch(PROXY+'/kanban/colunas/'+filialSigla, {headers:apiHeaders()}),
-      fetch(PROXY+'/kanban/cards/'+filialSigla,   {headers:apiHeaders()}),
-    ]);
-    kanbanColunas = await rCol.json();
-    const cards   = await rCard.json();
-    kanbanCards   = {};
-    kanbanOrdem   = {};
-    for(const c of cards){
-      kanbanCards[String(c.id_os)] = { colunaId: Number(c.coluna_id), ordem: c.ordem||0 };
-    }
-    populateKanbanFuncFilter();
-    renderKanban();
-  }catch(e){ console.warn('Kanban load error:', e.message); }
-}
-
-function renderKanban(){
-  const board = document.getElementById('kanbanBoard');
-  const osList = filterOSKanban();
-  document.getElementById('kanbanOSCount').textContent = `${osList.length} OS em andamento`;
-
-  board.innerHTML = kanbanColunas.map((col, idx)=>{
-    const cardsNaCol = osList.filter(os=>{
-      const entry = kanbanCards[String(os.idOrdemServico)];
-      const colunaId = entry ? entry.colunaId : null;
-      if(colunaId === undefined || colunaId === null) return idx === 0;
-      return Number(colunaId) === Number(col.id);
-    }).sort((a,b)=>{
-      const oa = (kanbanCards[String(a.idOrdemServico)] || {}).ordem ?? 9999;
-      const ob = (kanbanCards[String(b.idOrdemServico)] || {}).ordem ?? 9999;
-      return oa - ob;
-    });
-    return `<div class="kb-col" id="col-${col.id}"
-        ondragover="dragOverCol(event,${col.id})"
-        ondragleave="dragLeaveCol(event,${col.id})"
-        ondrop="dropCard(event,${col.id})">
-      <div class="kb-col-header">
-        <button class="kb-col-del" onclick="moverColuna(${col.id},-1)" title="Mover para esquerda" ${idx===0?'disabled':''}  style="${idx===0?'opacity:.3':''}">◀</button>
-        <div class="kb-col-title" ondblclick="editColTitle(this,${col.id})" title="Clique duplo para editar">${col.nome}</div>
-        <span class="kb-col-count">${cardsNaCol.length}</span>
-        <button class="kb-col-del" onclick="moverColuna(${col.id},1)" title="Mover para direita" ${idx===kanbanColunas.length-1?'disabled':''} style="${idx===kanbanColunas.length-1?'opacity:.3':''}">▶</button>
-        <button class="kb-col-del"
-          onmousedown="startDelColuna(event,${col.id},'${col.nome.replace(/'/g,"\\'")}',this)"
-          onmouseup="cancelDelColuna(this)" onmouseleave="cancelDelColuna(this)"
-          ontouchstart="startDelColuna(event,${col.id},'${col.nome.replace(/'/g,"\\'")}',this)"
-          ontouchend="cancelDelColuna(this)" title="Segure para excluir coluna">🗑</button>
-      </div>
-      <div class="kb-cards" id="cards-${col.id}">
-        ${cardsNaCol.map((os,ci)=>renderKbCard(os,col.id,ci,cardsNaCol.length)).join('')}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderKbCard(os, colunaId, cardIdx, totalCards){
-  const equipNum  = mapEquipNum[String(os.idImobilizado)]||'';
-  const equipFull = ename(os.idImobilizado);
-  const equipMod  = equipFull.includes(' - ') ? equipFull.split(' - ').slice(1).join(' - ')
-                  : equipFull.split(' ').slice(-2).join(' ');
-  const solic     = fname(os.idSolicitante).split(' ')[0];
-  const exec      = fname(os.idExecutante).split(' ')[0];
-  const urg       = uc(os.idUrgencia);
-  const items     = osItemsCache[String(os.idOrdemServico)]||[];
-  const servico   = items.map(it=>it.servicoIdentificado||it.servicoRealizar).filter(Boolean)[0]||os.observacao||'';
-  const prazo     = fmtDate(os.dataEntrega);
-  const entrada   = fmtDate(os.dataInicio);
-  const idOS      = os.idOrdemServico;
-  return `<div class="kb-card ${urg}"
-    draggable="true"
-    data-os-id="${idOS}"
-    data-coluna-id="${colunaId}"
-    ondragstart="dragStart(event,${idOS})"
-    ondragend="dragEnd(event)"
-    ondragover="dragOverCard(event,${idOS},${colunaId})"
-    ontouchstart="touchStart(event,${idOS})"
-    ontouchmove="touchMove(event)"
-    ontouchend="touchEnd(event,${idOS})"
-    onclick="kbCardClick(event,${idOS})"
-    style="-webkit-user-select:none;user-select:none;-webkit-touch-callout:none">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent)">OS #${os.numeroOrs||idOS}</span>
-      <div style="display:flex;gap:2px;align-items:center">
-        ${os.idUrgencia==1?'<span style="font-size:10px;background:var(--red);color:#fff;padding:1px 6px;border-radius:10px;font-weight:600">URGENTE</span>':''}
-        <button onclick="event.stopPropagation();moverCard(${idOS},${colunaId},-1)" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0 3px;font-size:12px" ${cardIdx===0?'disabled style="opacity:.2"':''} title="Subir">▲</button>
-        <button onclick="event.stopPropagation();moverCard(${idOS},${colunaId},1)"  style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0 3px;font-size:12px" ${cardIdx===totalCards-1?'disabled style="opacity:.2"':''} title="Descer">▼</button>
-      </div>
-    </div>
-    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px">${equipNum?'Nº '+equipNum+' ':''}${equipMod}</div>
-    ${servico?`<div style="font-size:11px;color:var(--text2);margin-bottom:5px;line-height:1.3">${servico.length>60?servico.slice(0,60)+'…':servico}</div>`:''}
-    <div style="display:flex;gap:8px;font-size:11px;color:var(--text3);margin-bottom:5px">
-      <span>📅 ${entrada}</span>
-      ${prazo&&prazo!=='–'?`<span style="color:${new Date(os.dataEntrega)<new Date()&&!isConcluida(os)?'var(--red)':'var(--text3)'}">⏰ ${prazo}</span>`:''}
-    </div>
-    <div style="display:flex;gap:6px;font-size:11px;color:var(--text2)">
-      ${exec&&exec!=='–'?`<span>👷 ${exec}</span>`:''}
-      ${solic&&solic!=='–'&&solic!==exec?`<span>👤 ${solic}</span>`:''}
-    </div>
-  </div>`;
-}
-
-// ── TOUCH DRAG (mobile) ────────────────────────────────────
-let touchDragOsId    = null;
-let touchDragEl      = null;
-let touchGhost       = null;
-let touchStartX      = 0;
-let touchStartY      = 0;
-let touchMoved       = false;
-let touchStartTime   = 0;
-
-function touchStart(e, idOS){
-  touchStartX    = e.touches[0].clientX;
-  touchStartY    = e.touches[0].clientY;
-  touchMoved     = false;
-  touchStartTime = Date.now();
-  touchDragOsId  = idOS;
-  touchDragEl    = e.currentTarget;
-}
-
-let touchScrollRAF = null;
-
-function touchMove(e){
-  const dx = e.touches[0].clientX - touchStartX;
-  const dy = e.touches[0].clientY - touchStartY;
-  if(!touchMoved && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-  touchMoved = true;
-  e.preventDefault();
-
-  const tx = e.touches[0].clientX;
-  const ty = e.touches[0].clientY;
-
-  if(!touchGhost){
-    touchGhost = touchDragEl.cloneNode(true);
-    touchGhost.style.cssText = 'position:fixed;z-index:999;opacity:.85;pointer-events:none;width:'+touchDragEl.offsetWidth+'px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:scale(1.03);transition:none;';
-    document.body.appendChild(touchGhost);
-    touchDragEl.style.opacity='0.3';
-  }
-
-  touchGhost.style.left = (tx - touchDragEl.offsetWidth/2) + 'px';
-  touchGhost.style.top  = (ty - 30) + 'px';
-
-  // Auto-scroll contínuo com rAF
-  if(touchScrollRAF) cancelAnimationFrame(touchScrollRAF);
-  const board = document.getElementById('kanbanBoard');
-  const boardRect = board.getBoundingClientRect();
-  const edgeH = 80, edgeV = 100;
-  const winH  = window.innerHeight;
-
-  let scrollH = 0, scrollV = 0;
-  if(tx < boardRect.left + edgeH)       scrollH = -Math.ceil((edgeH-(tx-boardRect.left))*0.5);
-  else if(tx > boardRect.right - edgeH) scrollH =  Math.ceil((edgeH-(boardRect.right-tx))*0.5);
-  if(ty < edgeV)                         scrollV = -Math.ceil((edgeV-ty)*0.5);
-  else if(ty > winH - edgeV)             scrollV =  Math.ceil((edgeV-(winH-ty))*0.5);
-
-  if(scrollH || scrollV){
-    function doScroll(){
-      board.scrollLeft += scrollH;
-      window.scrollBy(0, scrollV);
-      touchScrollRAF = requestAnimationFrame(doScroll);
-    }
-    touchScrollRAF = requestAnimationFrame(doScroll);
-  }
-
-  // Destaca coluna sob o dedo
-  const el = document.elementFromPoint(tx, ty);
-  document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
-  const col = el?.closest('.kb-col');
-  if(col) col.classList.add('drag-over');
-}
-
-async function touchEnd(e, idOS){
-  if(touchScrollRAF){ cancelAnimationFrame(touchScrollRAF); touchScrollRAF=null; }
-  if(touchGhost){ touchGhost.remove(); touchGhost=null; }
-  if(touchDragEl) touchDragEl.style.opacity='';
-  document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
-
-  if(!touchMoved){
-    // Toque simples → abre modal
-    openModal(idOS);
-    touchDragOsId=null; touchDragEl=null;
-    return;
-  }
-
-  // Encontra coluna sob o dedo
-  const el = document.elementFromPoint(
-    e.changedTouches[0].clientX,
-    e.changedTouches[0].clientY
-  );
-  const col = el?.closest('.kb-col');
-  if(col){
-    const colunaId = parseInt(col.id.replace('col-',''));
-    // Usa a mesma lógica do dropCard
-    await dropCardToColuna(idOS, colunaId);
-  }
-  touchDragOsId=null; touchDragEl=null; touchMoved=false;
-}
-
-function kbCardClick(e, idOS){
-  // No desktop, onclick normal; no mobile, touchEnd já tratou
-  if(!('ontouchstart' in window)) openModal(idOS);
-}
-
-async function dropCardToColuna(idOS, colunaId){
-  if(!kanbanCards[String(idOS)]) kanbanCards[String(idOS)]={colunaId:Number(colunaId),ordem:9999};
-  else kanbanCards[String(idOS)].colunaId = Number(colunaId);
-
-  const osList2 = filterOSKanban();
-  const colCards = osList2.filter(os=>{
-    const e2 = kanbanCards[String(os.idOrdemServico)];
-    const cId = e2 ? e2.colunaId : null;
-    if(cId===null||cId===undefined) return kanbanColunas[0]?.id===Number(colunaId);
-    return Number(cId)===Number(colunaId);
-  }).sort((a,b)=>(kanbanCards[String(a.idOrdemServico)]?.ordem??9999)-(kanbanCards[String(b.idOrdemServico)]?.ordem??9999));
-  colCards.forEach((os,i)=>{ kanbanCards[String(os.idOrdemServico)].ordem=i; });
-  renderKanban();
-
-  try{
-    await fetch(PROXY+'/kanban/cards/reorder',{
-      method:'PUT', headers:apiHeaders(),
-      body: JSON.stringify({filial:filialSigla, cards:colCards.map(os=>({
-        id_os:String(os.idOrdemServico), filial:filialSigla,
-        coluna_id:Number(colunaId), ordem:kanbanCards[String(os.idOrdemServico)].ordem
-      }))})
-    });
-  }catch{ showToast('Erro ao mover card', true); }
-}
-
-function dragStart(e, idOS){
-  draggedOsId = idOS;
-  e.dataTransfer.effectAllowed='move';
-  setTimeout(()=>{ const card=e.target; if(card) card.classList.add('dragging'); },0);
-}
-function dragEnd(e){
-  e.target.classList.remove('dragging');
-  document.querySelectorAll('.kb-col').forEach(c=>c.classList.remove('drag-over'));
-  dragOverOsId = null;
-}
-function dragOverCol(e, colunaId){
-  e.preventDefault();
-  const col = document.getElementById('col-'+colunaId);
-  if(col) col.classList.add('drag-over');
-}
-function dragLeaveCol(e, colunaId){
-  if(!e.currentTarget.contains(e.relatedTarget)){
-    const col = document.getElementById('col-'+colunaId);
-    if(col) col.classList.remove('drag-over');
-  }
-}
-function dragOverCard(e, targetOsId, colunaId){
-  e.preventDefault(); e.stopPropagation();
-  if(draggedOsId === targetOsId) return;
-  dragOverOsId = targetOsId;
-  // Reordena localmente para preview visual
-  const osList = filterOSKanban();
-  const colCards = osList.filter(os=>{
-    const entry = kanbanCards[String(os.idOrdemServico)];
-    const cId = entry ? entry.colunaId : null;
-    if(cId===null||cId===undefined) return kanbanColunas[0]?.id === colunaId;
-    return Number(cId) === Number(colunaId);
-  }).sort((a,b)=>(kanbanCards[String(a.idOrdemServico)]?.ordem??9999)-(kanbanCards[String(b.idOrdemServico)]?.ordem??9999));
-  const fromIdx = colCards.findIndex(os=>String(os.idOrdemServico)===String(draggedOsId));
-  const toIdx   = colCards.findIndex(os=>String(os.idOrdemServico)===String(targetOsId));
-  if(fromIdx===-1||toIdx===-1) return;
-  // Swap preview
-  colCards.splice(toIdx, 0, colCards.splice(fromIdx,1)[0]);
-  colCards.forEach((os,i)=>{
-    if(!kanbanCards[String(os.idOrdemServico)]) kanbanCards[String(os.idOrdemServico)]={colunaId:colunaId,ordem:i};
-    else kanbanCards[String(os.idOrdemServico)].ordem = i;
-  });
-  renderKanban();
-}
-
-async function dropCard(e, colunaId){
-  e.preventDefault();
-  const col = document.getElementById('col-'+colunaId);
-  if(col) col.classList.remove('drag-over');
-  if(!draggedOsId) return;
-  await dropCardToColuna(draggedOsId, colunaId);
-  draggedOsId = null;
-}
-
-// Mover card verticalmente com botões ▲▼
-async function moverCard(idOS, colunaId, delta){
-  const osList = filterOSKanban();
-  const colCards = osList.filter(os=>{
-    const e = kanbanCards[String(os.idOrdemServico)];
-    const cId = e ? e.colunaId : null;
-    if(cId===null||cId===undefined) return kanbanColunas[0]?.id===Number(colunaId);
-    return Number(cId)===Number(colunaId);
-  }).sort((a,b)=>(kanbanCards[String(a.idOrdemServico)]?.ordem??9999)-(kanbanCards[String(b.idOrdemServico)]?.ordem??9999));
-
-  const idx = colCards.findIndex(os=>String(os.idOrdemServico)===String(idOS));
-  const newIdx = idx + delta;
-  if(idx===-1||newIdx<0||newIdx>=colCards.length) return;
-
-  // Troca
-  const temp = colCards[idx]; colCards[idx]=colCards[newIdx]; colCards[newIdx]=temp;
-  colCards.forEach((os,i)=>{
-    if(!kanbanCards[String(os.idOrdemServico)]) kanbanCards[String(os.idOrdemServico)]={colunaId:Number(colunaId),ordem:i};
-    else kanbanCards[String(os.idOrdemServico)].ordem=i;
-  });
-  renderKanban();
-
-  // Salva
-  try{
-    await fetch(PROXY+'/kanban/cards/reorder',{
-      method:'PUT', headers:apiHeaders(),
-      body: JSON.stringify({filial:filialSigla, cards:colCards.map((os,i)=>({
-        id_os:String(os.idOrdemServico), filial:filialSigla,
-        coluna_id:Number(colunaId), ordem:i
-      }))})
-    });
-  }catch{ showToast('Erro ao reordenar', true); }
-}
-
-// Edição inline do título da coluna
-function editColTitle(el, colunaId){
-  const cur = el.textContent.replace(/"/g,'&quot;');
-  el.outerHTML = '<input class="kb-col-title-input" id="inp-col-'+colunaId+'" value="'+cur+'" '
-    +'onblur="saveColTitle(this,'+colunaId+')" '
-    +'onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\')this.blur()">';
-  document.getElementById('inp-col-'+colunaId)?.focus();
-}
-async function saveColTitle(inp, colunaId){
-  const nome = inp.value.trim() || inp.defaultValue;
-  inp.outerHTML = '<div class="kb-col-title" ondblclick="editColTitle(this,'+colunaId+')" title="Clique duplo para editar">'+nome+'</div>';
-  const col = kanbanColunas.find(c=>c.id===colunaId);
-  if(col) col.nome = nome;
-  try{ await fetch(PROXY+'/kanban/colunas/'+colunaId,{method:'PUT',headers:apiHeaders(),body:JSON.stringify({nome})}); }
-  catch{ showToast('Erro ao salvar', true); }
-}
-function cancelColTitle(inp, original){
-  const id = inp.id.replace('inp-col-','');
-  inp.outerHTML = '<div class="kb-col-title" ondblclick="editColTitle(this,'+id+')" title="Clique duplo para editar">'+original+'</div>';
-}
-
-async function moverColuna(id, delta){
-  const idx = kanbanColunas.findIndex(c=>c.id===id);
-  if(idx === -1) return;
-  const newIdx = idx + delta;
-  if(newIdx < 0 || newIdx >= kanbanColunas.length) return;
-
-  // Troca posições no array local
-  const temp = kanbanColunas[idx];
-  kanbanColunas[idx]    = kanbanColunas[newIdx];
-  kanbanColunas[newIdx] = temp;
-
-  // Atualiza ordem localmente e re-renderiza imediatamente
-  kanbanColunas.forEach((c,i) => c.ordem = i);
-  renderKanban();
-
-  // Salva nova ordem no servidor
-  try{
-    await Promise.all(kanbanColunas.map((c,i)=>
-      fetch(PROXY+'/kanban/colunas/'+c.id,{
-        method:'PUT', headers:apiHeaders(),
-        body: JSON.stringify({ordem:i})
-      })
-    ));
-  }catch{ showToast('Erro ao reordenar', true); }
-}
-
-let delTimer = null;
-
-function startDelColuna(e, id, nome, btn){
-  e.preventDefault();
-  // Adiciona barra de progresso
-  let bar = btn.querySelector('.kb-col-del-progress');
-  if(!bar){ bar = document.createElement('div'); bar.className='kb-col-del-progress'; btn.appendChild(bar); }
-  bar.style.transition = 'none'; bar.style.width = '0%';
-  setTimeout(()=>{ bar.style.transition = 'width 1s linear'; bar.style.width = '100%'; }, 10);
-  btn.style.color = 'var(--red)';
-  delTimer = setTimeout(()=>{
-    deleteColuna(id, nome);
-    delTimer = null;
-  }, 1000);
-}
-
-function cancelDelColuna(btn){
-  if(delTimer){ clearTimeout(delTimer); delTimer = null; }
-  const bar = btn.querySelector('.kb-col-del-progress');
-  if(bar){ bar.style.transition='none'; bar.style.width='0%'; }
-  btn.style.color = '';
-}
-
-async function deleteColuna(id, nome){
-  showToast('Coluna "'+nome+'" excluída');
-  await fetch(PROXY+'/kanban/colunas/'+id,{method:'DELETE',headers:apiHeaders()});
-  kanbanColunas = kanbanColunas.filter(c=>c.id!==id);
-  for(const k in kanbanCards){ if(Number(kanbanCards[k])===Number(id)) delete kanbanCards[k]; }
-  renderKanban();
-}
-
-function openAddColuna(){
-  document.getElementById('addColNome').value='';
-  document.getElementById('addColunaOverlay').classList.add('open');
-  setTimeout(()=>document.getElementById('addColNome').focus(),100);
-}
-function closeAddColuna(){ document.getElementById('addColunaOverlay').classList.remove('open'); }
-
-async function confirmarAddColuna(){
-  const nome = document.getElementById('addColNome').value.trim();
-  if(!nome){ showToast('Digite um nome para a coluna', true); return; }
-  const ordem = kanbanColunas.length ? Math.max(...kanbanColunas.map(c=>c.ordem))+1 : 0;
-  try{
-    const res = await fetch(PROXY+'/kanban/colunas',{
-      method:'POST', headers:apiHeaders(),
-      body: JSON.stringify({filial:filialSigla, nome, ordem})
-    });
-    if(!res.ok){ showToast('Erro ao criar coluna', true); return; }
-    closeAddColuna();
-    // Recarrega colunas do servidor para garantir dados corretos
-    await loadKanban();
-  }catch(e){ showToast('Erro: '+e.message, true); }
-}
-
-// Polling tempo real (5s)
-function startKanbanPoll(){
-  stopKanbanPoll();
-  kanbanPollInterval = setInterval(async()=>{
-    try{
-      const [rCol, rCard] = await Promise.all([
-        fetch(PROXY+'/kanban/colunas/'+filialSigla,{headers:apiHeaders()}),
-        fetch(PROXY+'/kanban/cards/'+filialSigla,  {headers:apiHeaders()}),
-      ]);
-      const cols  = await rCol.json();
-      const cards = await rCard.json();
-      const newMap = {};
-      for(const c of cards) newMap[String(c.id_os)] = { colunaId: Number(c.coluna_id), ordem: c.ordem||0 };
-      // Só re-renderiza se mudou algo
-      const changed = JSON.stringify(cols)!==JSON.stringify(kanbanColunas) ||
-                      JSON.stringify(newMap)!==JSON.stringify(kanbanCards);
-      if(changed){ kanbanColunas=cols; kanbanCards=newMap; renderKanban(); }
-    }catch{}
-  }, 5000);
-}
-function stopKanbanPoll(){ if(kanbanPollInterval){ clearInterval(kanbanPollInterval); kanbanPollInterval=null; } }
 
 // ── MODAL ──────────────────────────────────────────────────
 function switchTab(tabId){
